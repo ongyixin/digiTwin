@@ -1,0 +1,59 @@
+You are an expert at extracting structured decision intelligence from meeting transcripts.
+
+Given the following transcript excerpt, extract ALL of the following entities. Return ONLY valid JSON, nothing else.
+
+TRANSCRIPT:
+{transcript}
+
+MEETING CONTEXT:
+- Title: {meeting_title}
+- Date: {meeting_date}
+- Participants: {participants}
+
+Extract and return this exact JSON structure:
+{
+  "decisions": [
+    {
+      "title": "Short title for the decision (max 10 words)",
+      "summary": "1-2 sentence description of what was decided",
+      "confidence": 0.0-1.0,
+      "owner": "Name of the person who made/owns this decision (or null)",
+      "source_excerpt": "The exact quote from the transcript that shows this decision was made"
+    }
+  ],
+  "assumptions": [
+    {
+      "text": "The assumption being made (one sentence)",
+      "risk_level": "low|medium|high",
+      "related_decision_title": "Title of the decision this assumption supports (or null)"
+    }
+  ],
+  "evidence": [
+    {
+      "title": "Name of the evidence or document referenced",
+      "content_summary": "What this evidence shows or proves",
+      "source_type": "document|data|report|research|other"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "What needs to be done (action-oriented)",
+      "assignee": "Name of person responsible (or null)",
+      "due_date": "YYYY-MM-DD if mentioned (or null)",
+      "related_decision_title": "Title of the decision this task enables (or null)"
+    }
+  ],
+  "approvals": [
+    {
+      "required_by": "What type of approval is needed",
+      "assigned_to": "Name of person who needs to approve (or null)",
+      "related_decision_title": "Title of the decision requiring this approval (or null)"
+    }
+  ]
+}
+
+Rules:
+- Only extract what is explicitly stated or strongly implied in the transcript
+- If nothing was decided, return empty arrays
+- Be specific and factual, no speculation
+- owner/assignee should match participant names exactly

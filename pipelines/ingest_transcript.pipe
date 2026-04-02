@@ -1,0 +1,87 @@
+{
+  "name": "ingest_transcript",
+  "version": "1.0.0",
+  "description": "Ingest a meeting transcript, extract entities via LLM, and upsert to Neo4j",
+  "nodes": [
+    {
+      "id": "source",
+      "type": "webhook",
+      "config": {
+        "path": "/ingest/transcript",
+        "method": "POST"
+      }
+    },
+    {
+      "id": "chunker",
+      "type": "text_chunker",
+      "config": {
+        "chunk_size": 2000,
+        "overlap": 200,
+        "input_field": "transcript"
+      }
+    },
+    {
+      "id": "entity_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "prompt_file": "../backend/app/prompts/extract_decisions.txt",
+        "output_format": "json",
+        "temperature": 0.1,
+        "input_fields": ["chunk", "meeting_title", "meeting_date", "participants"]
+      }
+    },
+    {
+      "id": "relationship_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "prompt_file": "../backend/app/prompts/extract_relationships.txt",
+        "output_format": "json",
+        "temperature": 0.1,
+        "input_fields": ["entities"]
+      }
+    },
+    {
+      "id": "embedding_generator",
+      "type": "embedder",
+      "config": {
+        "provider": "openai",
+        "model": "text-embedding-3-small",
+        "dimensions": 1536,
+        "fields_to_embed": ["decisions[].title", "decisions[].summary", "assumptions[].text", "evidence[].content_summary"]
+      }
+    },
+    {
+      "id": "neo4j_writer",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "env": {
+          "NEO4J_URI": "${NEO4J_URI}",
+          "NEO4J_USER": "${NEO4J_USER}",
+          "NEO4J_PASSWORD": "${NEO4J_PASSWORD}"
+        }
+      }
+    },
+    {
+      "id": "audit_emitter",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "action": "create_agent_action",
+        "action_type": "ingest_transcript"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "source", "to": "chunker" },
+    { "from": "chunker", "to": "entity_extractor" },
+    { "from": "entity_extractor", "to": "relationship_extractor" },
+    { "from": "relationship_extractor", "to": "embedding_generator" },
+    { "from": "embedding_generator", "to": "neo4j_writer" },
+    { "from": "neo4j_writer", "to": "audit_emitter" }
+  ]
+}

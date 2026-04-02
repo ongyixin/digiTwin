@@ -1,0 +1,56 @@
+{
+  "users": [
+    { "id": "alex", "name": "Alex Chen", "email": "alex@example.com", "department": "Product", "roles": ["pm", "beta-launch-owner"] },
+    { "id": "jordan", "name": "Jordan Lee", "email": "jordan@example.com", "department": "Engineering", "roles": ["eng-lead"] },
+    { "id": "sam", "name": "Sam Patel", "email": "sam@example.com", "department": "Legal", "roles": ["legal-reviewer"] },
+    { "id": "riley", "name": "Riley Kim", "email": "riley@example.com", "department": "Analytics", "roles": ["analyst"] }
+  ],
+  "roles": [
+    {
+      "id": "pm",
+      "name": "pm",
+      "description": "Product Manager",
+      "permissions": ["view:all", "edit:tasks", "execute:send-reminder"]
+    },
+    {
+      "id": "beta-launch-owner",
+      "name": "beta-launch-owner",
+      "description": "Owner of the beta launch initiative",
+      "permissions": ["view:all", "edit:decisions", "execute:send-reminder", "execute:escalate", "approve:launch"]
+    },
+    {
+      "id": "eng-lead",
+      "name": "eng-lead",
+      "description": "Engineering Lead",
+      "permissions": ["view:all", "edit:tasks", "approve:qa-signoff"]
+    },
+    {
+      "id": "legal-reviewer",
+      "name": "legal-reviewer",
+      "description": "Legal Reviewer",
+      "permissions": ["view:legal-scope", "approve:legal-review"]
+    },
+    {
+      "id": "analyst",
+      "name": "analyst",
+      "description": "Analytics team member",
+      "permissions": ["view:analytics-scope", "edit:analytics-tasks"]
+    }
+  ],
+  "resources": [
+    { "id": "send-reminder", "type": "action", "description": "Send a reminder message to a stakeholder" },
+    { "id": "escalate", "type": "action", "description": "Escalate a blocked approval" },
+    { "id": "edit-decisions", "type": "action", "description": "Edit decision records" },
+    { "id": "approve-launch", "type": "action", "description": "Give final launch approval" },
+    { "id": "approve-legal-review", "type": "action", "description": "Complete a legal review" },
+    { "id": "approve-qa-signoff", "type": "action", "description": "Sign off on QA" },
+    { "id": "view-all", "type": "resource", "description": "View all decisions and context" },
+    { "id": "view-legal-scope", "type": "resource", "description": "View legal-scoped items only" },
+    { "id": "view-analytics-scope", "type": "resource", "description": "View analytics-scoped items only" }
+  ],
+  "scopes": [
+    { "id": "beta-launch-q2", "name": "Beta Launch Q2", "boundary": "beta-launch" },
+    { "id": "legal-scope", "name": "Legal Scope", "boundary": "legal" },
+    { "id": "analytics-scope", "name": "Analytics Scope", "boundary": "analytics" }
+  ]
+}

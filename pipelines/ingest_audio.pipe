@@ -1,0 +1,108 @@
+{
+  "name": "ingest_audio",
+  "version": "1.0.0",
+  "description": "Ingest an audio or video recording: transcribe, diarize, and extract decision graph entities",
+  "nodes": [
+    {
+      "id": "source",
+      "type": "webhook",
+      "config": {
+        "path": "/ingest/artifact",
+        "method": "POST",
+        "filter": {"artifact_type": ["audio", "video"]}
+      }
+    },
+    {
+      "id": "provenance_register",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/provenance_register.py",
+        "action": "upsert_artifact_version"
+      }
+    },
+    {
+      "id": "transcriber",
+      "type": "audio_transcription",
+      "config": {
+        "provider": "${TRANSCRIPTION_PROVIDER:gemini}",
+        "model": "gemini-2.5-flash",
+        "diarize": true,
+        "output_format": "diarized_json"
+      }
+    },
+    {
+      "id": "section_splitter",
+      "type": "text_chunker",
+      "config": {
+        "strategy": "speaker_turns",
+        "max_words": 500,
+        "include_timestamps": true
+      }
+    },
+    {
+      "id": "entity_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "prompt_file": "../backend/app/prompts/extract_audio_video.txt",
+        "output_format": "json",
+        "temperature": 0.1,
+        "input_fields": ["transcript", "participants", "meeting_title", "meeting_date"]
+      }
+    },
+    {
+      "id": "relationship_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "prompt_file": "../backend/app/prompts/extract_relationships.txt",
+        "output_format": "json",
+        "temperature": 0.1
+      }
+    },
+    {
+      "id": "embedding_generator",
+      "type": "embedder",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-embedding-001",
+        "dimensions": 768,
+        "fields_to_embed": ["decisions[].summary", "assumptions[].text", "chunks[].text"]
+      }
+    },
+    {
+      "id": "neo4j_writer",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "entity_types": ["speaker_turns", "decisions", "assumptions", "tasks", "approvals"],
+        "env": {
+          "NEO4J_URI": "${NEO4J_URI}",
+          "NEO4J_USER": "${NEO4J_USER}",
+          "NEO4J_PASSWORD": "${NEO4J_PASSWORD}"
+        }
+      }
+    },
+    {
+      "id": "audit_emitter",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "action": "create_agent_action",
+        "action_type": "ingest_audio"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "source", "to": "provenance_register" },
+    { "from": "provenance_register", "to": "transcriber" },
+    { "from": "transcriber", "to": "section_splitter" },
+    { "from": "section_splitter", "to": "entity_extractor" },
+    { "from": "entity_extractor", "to": "relationship_extractor" },
+    { "from": "relationship_extractor", "to": "embedding_generator" },
+    { "from": "embedding_generator", "to": "neo4j_writer" },
+    { "from": "neo4j_writer", "to": "audit_emitter" }
+  ]
+}

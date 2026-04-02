@@ -1,0 +1,63 @@
+{
+  "name": "draft_followups",
+  "version": "1.0.0",
+  "description": "Find blocked approvals, check permissions via policy sub-pipeline, draft follow-up messages, log AgentAction",
+  "nodes": [
+    {
+      "id": "source",
+      "type": "webhook",
+      "config": {
+        "path": "/actions/draft-followups",
+        "method": "POST",
+        "expected_fields": ["user_id"]
+      }
+    },
+    {
+      "id": "fetch_pending_approvals",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_query.py",
+        "query": "MATCH (ap:Approval {status: 'pending'})-[:FOR_DECISION]->(d:Decision) MATCH (ap)-[:ASSIGNED_TO]->(p:Person) RETURN ap, d.title AS decision_title, p.id AS person_id, p.name AS person_name"
+      }
+    },
+    {
+      "id": "policy_check",
+      "type": "sub_pipeline",
+      "config": {
+        "pipeline": "check_policy.pipe",
+        "map_input": {
+          "user_id": "$.user_id",
+          "action": "execute",
+          "resource_id": "send-reminder"
+        }
+      }
+    },
+    {
+      "id": "draft_messages",
+      "type": "llm",
+      "config": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "system_prompt": "You are a professional assistant drafting follow-up messages for pending approvals. Be concise and professional.",
+        "output_format": "json",
+        "temperature": 0.4,
+        "condition": "$.policy_check.allowed == true"
+      }
+    },
+    {
+      "id": "write_agent_action",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "action": "create_agent_action",
+        "action_type": "draft_followups"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "source", "to": "fetch_pending_approvals" },
+    { "from": "fetch_pending_approvals", "to": "policy_check" },
+    { "from": "policy_check", "to": "draft_messages" },
+    { "from": "draft_messages", "to": "write_agent_action" }
+  ]
+}

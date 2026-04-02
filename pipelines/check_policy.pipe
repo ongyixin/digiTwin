@@ -1,0 +1,40 @@
+{
+  "name": "check_policy",
+  "version": "1.0.0",
+  "description": "Check permissions before any side-effecting action. Called as a sub-pipeline.",
+  "nodes": [
+    {
+      "id": "input",
+      "type": "passthrough",
+      "config": {
+        "expected_fields": ["user_id", "action", "resource_id"]
+      }
+    },
+    {
+      "id": "permission_query",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/permission_check.py"
+      }
+    },
+    {
+      "id": "delegation_resolver",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/permission_check.py",
+        "mode": "delegation"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "input", "to": "permission_query" },
+    { "from": "permission_query", "to": "delegation_resolver" }
+  ],
+  "output_schema": {
+    "allowed": "boolean",
+    "policy_path": "string[]",
+    "requires_approval": "boolean",
+    "approver": "string | null",
+    "reason": "string"
+  }
+}

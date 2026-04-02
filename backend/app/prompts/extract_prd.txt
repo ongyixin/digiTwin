@@ -1,0 +1,71 @@
+You are an expert at extracting structured product intelligence from PRDs, RFCs, design specs, and technical documents.
+
+Given the following document content, extract ALL of the entities below. Return ONLY valid JSON, nothing else.
+
+DOCUMENT CONTENT:
+{content}
+
+DOCUMENT CONTEXT:
+- Title: {title}
+- Type: {artifact_type}
+
+Extract and return this exact JSON structure:
+{
+  "product_goals": [
+    {
+      "title": "Short goal name (max 10 words)",
+      "description": "1-2 sentence description of what this goal achieves"
+    }
+  ],
+  "requirements": [
+    {
+      "title": "Short requirement name (max 10 words)",
+      "description": "What this requirement specifies",
+      "type": "functional|non-functional|constraint|security|performance",
+      "priority": "critical|high|medium|low",
+      "related_goal_title": "Title of the goal this requirement supports (or null)"
+    }
+  ],
+  "decisions": [
+    {
+      "title": "A design or product decision made in this document",
+      "summary": "1-2 sentence description of the decision",
+      "confidence": 0.0-1.0,
+      "owner": "Person or team (or null)",
+      "source_excerpt": "Exact quote from the document"
+    }
+  ],
+  "assumptions": [
+    {
+      "text": "Assumption underlying the design or requirements (one sentence)",
+      "risk_level": "low|medium|high",
+      "related_decision_title": "Related decision (or null)"
+    }
+  ],
+  "open_questions": [
+    {
+      "text": "Open question or unresolved decision",
+      "owner": "Person responsible for resolving it (or null)"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Follow-up task or action item",
+      "assignee": "Person responsible (or null)",
+      "due_date": "YYYY-MM-DD if mentioned (or null)",
+      "related_decision_title": "Related decision (or null)"
+    }
+  ],
+  "kpis": [
+    {
+      "title": "Metric name",
+      "target": "Target value or threshold if stated"
+    }
+  ]
+}
+
+Rules:
+- Distinguish between goals (outcomes) and requirements (behaviors/constraints)
+- Extract design decisions as decisions, not just as text
+- Open questions are explicitly unresolved items marked as TBD, "to be determined", questions, or open issues
+- Return empty arrays if no entities of that type are found

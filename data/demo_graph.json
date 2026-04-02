@@ -1,0 +1,676 @@
+{
+  "_comment": "Full demo graph for digiTwin showcase. Story: RocketRide Beta Launch Q2 2026.",
+
+  "meetings": [
+    {
+      "id": "M-beta-launch-review",
+      "title": "Beta Launch Review",
+      "date": "2026-04-01",
+      "participants": ["Alex Chen", "Jordan Lee", "Sam Patel", "Riley Kim"]
+    },
+    {
+      "id": "M-q1-retrospective",
+      "title": "Q1 Retrospective & Q2 Planning",
+      "date": "2026-03-15",
+      "participants": ["Alex Chen", "Jordan Lee", "Riley Kim"]
+    },
+    {
+      "id": "M-legal-kickoff",
+      "title": "Legal & Compliance Kickoff",
+      "date": "2026-03-22",
+      "participants": ["Alex Chen", "Sam Patel"]
+    }
+  ],
+
+  "decisions": [
+    {
+      "id": "D-launch-april15",
+      "title": "Launch Beta to Initial Cohort on April 15, 2026",
+      "summary": "The team agreed to launch the beta to the first cohort of users on April 15, 2026, subject to legal DPA sign-off and QA sign-off being completed. Engineering is confirmed ready with all P0 bugs resolved and three weeks of stable staging.",
+      "status": "approved",
+      "confidence": 0.88,
+      "source_excerpt": "Alex Chen: So the decision is locked: launch beta on April 15.",
+      "owner_id": "alex",
+      "meeting_id": "M-beta-launch-review",
+      "workspace": "default",
+      "tenant": "default",
+      "confidentiality": "internal",
+      "provenance_speaker": "Alex Chen"
+    },
+    {
+      "id": "D-dpa-required",
+      "title": "Vendor DPA Must Be Signed Before Go-Live",
+      "summary": "Legal sign-off is blocked until the Data Processing Agreement from the vendor is reviewed and executed. Sam Patel requires the vendor DPA document by April 5 to complete the review by April 10.",
+      "status": "proposed",
+      "confidence": 0.95,
+      "source_excerpt": "Sam Patel: We still need to complete the data processing agreement review. That's a hard dependency.",
+      "owner_id": "sam",
+      "meeting_id": "M-beta-launch-review",
+      "workspace": "default",
+      "tenant": "default",
+      "confidentiality": "internal",
+      "provenance_speaker": "Sam Patel"
+    },
+    {
+      "id": "D-qa-signoff",
+      "title": "QA Sign-off Required Before Launch",
+      "summary": "Jordan Lee committed to completing QA sign-off by April 8. All P0 bugs are resolved. Staging has been stable for three weeks. The sign-off is a formal gate before shipping.",
+      "status": "proposed",
+      "confidence": 0.9,
+      "source_excerpt": "Jordan Lee: I'll have QA signoff by April 8.",
+      "owner_id": "jordan",
+      "meeting_id": "M-beta-launch-review",
+      "workspace": "default",
+      "tenant": "default",
+      "confidentiality": "internal",
+      "provenance_speaker": "Jordan Lee"
+    },
+    {
+      "id": "D-referral-tracking-nonblocking",
+      "title": "Referral Tracking Gap Is Non-Blocking for Launch",
+      "summary": "Analytics coverage is at 87% on key user flows. The referral tracking gap means we lack visibility after a user shares a referral link. The team agreed this is medium priority and does not block the April 15 launch.",
+      "status": "approved",
+      "confidence": 0.75,
+      "source_excerpt": "Riley Kim: That's a medium priority; I don't think it blocks launch. Alex Chen: Agreed.",
+      "owner_id": "riley",
+      "meeting_id": "M-beta-launch-review",
+      "workspace": "default",
+      "tenant": "default",
+      "confidentiality": "internal",
+      "provenance_speaker": "Riley Kim"
+    },
+    {
+      "id": "D-runbook-update",
+      "title": "On-Call Runbook Must Be Updated Before Launch Day",
+      "summary": "Engineering must update the incident response runbook before April 15. Jordan Lee confirmed this is in progress and will be completed by April 12.",
+      "status": "proposed",
+      "confidence": 0.82,
+      "source_excerpt": "Alex Chen: Jordan, please also make sure the on-call runbook is updated before launch day.",
+      "owner_id": "jordan",
+      "meeting_id": "M-beta-launch-review",
+      "workspace": "default",
+      "tenant": "default",
+      "confidentiality": "internal",
+      "provenance_speaker": "Alex Chen"
+    },
+    {
+      "id": "D-beta-scope",
+      "title": "Limit Beta to Top-Engagement Segment from Q1 Criteria",
+      "summary": "The beta cohort will be selected based on Q1 power-user criteria defined by Alex. This limits blast radius for any churn impact and validates assumptions about the engagement segment.",
+      "status": "approved",
+      "confidence": 0.85,
+      "source_excerpt": "Based on the selection criteria Alex defined, I think the assumption holds.",
+      "owner_id": "alex",
+      "meeting_id": "M-q1-retrospective",
+      "workspace": "default",
+      "tenant": "default",
+      "confidentiality": "internal",
+      "provenance_speaker": "Alex Chen"
+    }
+  ],
+
+  "assumptions": [
+    {
+      "id": "A-churn-low",
+      "text": "Beta cohort will behave similarly to Q1 power users and churn impact will be under 5% monthly",
+      "status": "active",
+      "risk_level": "medium",
+      "decision_id": "D-launch-april15",
+      "workspace": "default",
+      "provenance_speaker": "Jordan Lee"
+    },
+    {
+      "id": "A-analytics-sufficient",
+      "text": "Analytics instrumentation is complete enough to measure churn and activation accurately, even though referral tracking is incomplete",
+      "status": "active",
+      "risk_level": "low",
+      "decision_id": "D-referral-tracking-nonblocking",
+      "workspace": "default",
+      "provenance_speaker": "Alex Chen"
+    },
+    {
+      "id": "A-dpa-timeline",
+      "text": "Vendor DPA document can be received by April 5, enabling legal review completion by April 10",
+      "status": "active",
+      "risk_level": "high",
+      "decision_id": "D-dpa-required",
+      "workspace": "default",
+      "provenance_speaker": "Sam Patel"
+    },
+    {
+      "id": "A-staging-representative",
+      "text": "Three weeks of stable staging performance is representative of production load at beta cohort scale",
+      "status": "active",
+      "risk_level": "low",
+      "decision_id": "D-qa-signoff",
+      "workspace": "default",
+      "provenance_speaker": "Jordan Lee"
+    },
+    {
+      "id": "A-churn-contradicted",
+      "text": "If the beta cohort is more general than Q1 power users, churn may exceed 5% monthly",
+      "status": "contradicted",
+      "risk_level": "high",
+      "decision_id": "D-launch-april15",
+      "workspace": "default",
+      "provenance_speaker": "Riley Kim"
+    }
+  ],
+
+  "evidence": [
+    {
+      "id": "E-q1-churn-report",
+      "title": "Q1 Churn Analysis Report",
+      "content_summary": "Top-engagement segment showed 3.2% monthly churn in Q1 2026. Report includes cohort breakdown by feature usage intensity, activation rate (67%), and 30/60/90-day retention curves. Authored by Riley Kim.",
+      "source_type": "document",
+      "source_url": "https://docs.internal/q1-churn-analysis-2026",
+      "decision_id": "D-launch-april15",
+      "workspace": "default",
+      "confidentiality": "internal"
+    },
+    {
+      "id": "E-staging-results",
+      "title": "Staging Environment Test Results — March 2026",
+      "content_summary": "Three-week staging run from March 8 to March 28. Zero P0 incidents. P1 incident on March 14 resolved within SLA. Load tested to 2x expected beta traffic. All critical user flows passing.",
+      "source_type": "document",
+      "source_url": "https://docs.internal/staging-test-results-march2026",
+      "decision_id": "D-qa-signoff",
+      "workspace": "default",
+      "confidentiality": "internal"
+    },
+    {
+      "id": "E-engineering-readiness",
+      "title": "Beta Launch Engineering Readiness Report",
+      "content_summary": "Engineering readiness assessment covering P0 bug backlog (0 open), deployment pipeline status (green), rollback procedure (documented), feature flag configuration (ready), and on-call coverage plan.",
+      "source_type": "document",
+      "source_url": "https://docs.internal/eng-readiness-april2026",
+      "decision_id": "D-launch-april15",
+      "workspace": "default",
+      "confidentiality": "internal"
+    },
+    {
+      "id": "E-gdpr-policy",
+      "title": "GDPR Data Processing Policy v2.1",
+      "content_summary": "Internal policy governing data processing agreements with third-party vendors. Requires signed DPA before any user PII is shared. Legal team review mandatory. Effective date: January 2026.",
+      "source_type": "policy_doc",
+      "source_url": "https://docs.internal/gdpr-dpa-policy-v2",
+      "decision_id": "D-dpa-required",
+      "workspace": "default",
+      "confidentiality": "confidential"
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-chase-vendor-dpa",
+      "title": "Chase vendor for DPA document",
+      "status": "open",
+      "assignee_id": "jordan",
+      "due_date": "2026-04-05",
+      "decision_id": "D-dpa-required"
+    },
+    {
+      "id": "T-legal-dpa-review",
+      "title": "Complete legal review of vendor DPA",
+      "status": "open",
+      "assignee_id": "sam",
+      "due_date": "2026-04-10",
+      "decision_id": "D-dpa-required"
+    },
+    {
+      "id": "T-qa-signoff",
+      "title": "Complete QA sign-off",
+      "status": "open",
+      "assignee_id": "jordan",
+      "due_date": "2026-04-08",
+      "decision_id": "D-qa-signoff"
+    },
+    {
+      "id": "T-runbook-update",
+      "title": "Update on-call incident response runbook",
+      "status": "open",
+      "assignee_id": "jordan",
+      "due_date": "2026-04-12",
+      "decision_id": "D-runbook-update"
+    },
+    {
+      "id": "T-share-churn-report",
+      "title": "Share Q1 Churn Analysis report link in Slack",
+      "status": "done",
+      "assignee_id": "riley",
+      "due_date": "2026-04-01",
+      "decision_id": "D-launch-april15"
+    },
+    {
+      "id": "T-send-decision-memo",
+      "title": "Send decision memo to broader team",
+      "status": "done",
+      "assignee_id": "alex",
+      "due_date": "2026-04-01",
+      "decision_id": "D-launch-april15"
+    },
+    {
+      "id": "T-gonogo-meeting",
+      "title": "Schedule April 10 go/no-go call",
+      "status": "open",
+      "assignee_id": "alex",
+      "due_date": "2026-04-10",
+      "decision_id": "D-launch-april15"
+    }
+  ],
+
+  "approvals": [
+    {
+      "id": "AP-legal-review",
+      "decision_id": "D-dpa-required",
+      "assigned_to_id": "sam",
+      "required_by": "Legal sign-off on DPA required before beta ships",
+      "due_date": "2026-04-10",
+      "status": "pending"
+    },
+    {
+      "id": "AP-qa-signoff",
+      "decision_id": "D-qa-signoff",
+      "assigned_to_id": "jordan",
+      "required_by": "Engineering QA gate before production deployment",
+      "due_date": "2026-04-08",
+      "status": "pending"
+    },
+    {
+      "id": "AP-launch-final",
+      "decision_id": "D-launch-april15",
+      "assigned_to_id": "alex",
+      "required_by": "PM final launch approval after all gates cleared",
+      "due_date": "2026-04-14",
+      "status": "pending"
+    },
+    {
+      "id": "AP-beta-scope-approved",
+      "decision_id": "D-beta-scope",
+      "assigned_to_id": "alex",
+      "required_by": "PM sign-off on cohort selection criteria",
+      "due_date": "2026-03-20",
+      "status": "approved"
+    }
+  ],
+
+  "agent_actions": [
+    {
+      "id": "AA-reminder-jordan-dpa",
+      "action_type": "send_reminder",
+      "initiated_by": "alex",
+      "executed_by_agent": "digiTwin",
+      "policy_path": ["alex", "beta-launch-owner", "execute:send-reminder"],
+      "status": "executed",
+      "timestamp": "2026-04-01T11:35:00Z",
+      "target_id": "T-chase-vendor-dpa"
+    },
+    {
+      "id": "AA-escalate-dpa-blocker",
+      "action_type": "draft_escalation",
+      "initiated_by": "alex",
+      "executed_by_agent": "digiTwin",
+      "policy_path": ["alex", "beta-launch-owner", "execute:escalate"],
+      "status": "executed",
+      "timestamp": "2026-04-01T14:00:00Z",
+      "target_id": "D-dpa-required"
+    },
+    {
+      "id": "AA-reminder-riley-churn",
+      "action_type": "send_reminder",
+      "initiated_by": "alex",
+      "executed_by_agent": "digiTwin",
+      "policy_path": ["alex", "pm", "execute:send-reminder"],
+      "status": "executed",
+      "timestamp": "2026-04-01T15:10:00Z",
+      "target_id": "T-share-churn-report"
+    },
+    {
+      "id": "AA-escalate-denied",
+      "action_type": "draft_escalation",
+      "initiated_by": "riley",
+      "executed_by_agent": "digiTwin",
+      "policy_path": ["riley", "analyst"],
+      "status": "blocked",
+      "timestamp": "2026-04-01T16:00:00Z",
+      "target_id": "D-dpa-required"
+    },
+    {
+      "id": "AA-review-packet",
+      "action_type": "prepare_review_packet",
+      "initiated_by": "alex",
+      "executed_by_agent": "digiTwin",
+      "policy_path": ["alex", "beta-launch-owner", "approve:launch"],
+      "status": "queued_for_review",
+      "timestamp": "2026-04-02T09:00:00Z",
+      "target_id": "D-launch-april15"
+    },
+    {
+      "id": "AA-notify-sam",
+      "action_type": "notify_owner",
+      "initiated_by": "jordan",
+      "executed_by_agent": "digiTwin",
+      "policy_path": ["jordan", "eng-lead", "edit:tasks"],
+      "status": "executed",
+      "timestamp": "2026-04-02T10:30:00Z",
+      "target_id": "AP-legal-review"
+    }
+  ],
+
+  "review_tasks": [
+    {
+      "id": "RT-launch-packet-review",
+      "original_action_id": "AA-review-packet",
+      "action_type": "prepare_review_packet",
+      "initiated_by": "alex",
+      "reason": "Launch review packet requires PM approval before distribution. Policy requires explicit sign-off from launch owner.",
+      "status": "pending",
+      "created_at": "2026-04-02T09:00:00Z"
+    },
+    {
+      "id": "RT-escalate-legal",
+      "original_action_id": "AA-escalate-dpa-blocker",
+      "action_type": "draft_escalation",
+      "initiated_by": "alex",
+      "reason": "Escalation drafted for DPA blocker. Legal reviewer (Sam) must confirm escalation path is appropriate before sending.",
+      "status": "pending",
+      "created_at": "2026-04-01T14:00:00Z"
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "ART-beta-launch-transcript",
+      "type": "transcript",
+      "source_type": "meeting_transcript",
+      "title": "Beta Launch Review — April 1, 2026",
+      "workspace_id": "default",
+      "sensitivity": "internal",
+      "mime_type": "text/plain",
+      "status": "ingested",
+      "metadata": {
+        "meeting_id": "M-beta-launch-review",
+        "participants": ["Alex Chen", "Jordan Lee", "Sam Patel", "Riley Kim"],
+        "duration_minutes": 90
+      }
+    },
+    {
+      "id": "ART-q1-churn-report",
+      "type": "policy_doc",
+      "source_type": "document",
+      "title": "Q1 Churn Analysis Report",
+      "workspace_id": "default",
+      "sensitivity": "internal",
+      "mime_type": "application/pdf",
+      "status": "ingested",
+      "metadata": {
+        "author": "riley",
+        "pages": 12,
+        "evidence_id": "E-q1-churn-report"
+      }
+    },
+    {
+      "id": "ART-eng-readiness",
+      "type": "prd",
+      "source_type": "document",
+      "title": "Beta Launch Engineering Readiness Report",
+      "workspace_id": "default",
+      "sensitivity": "internal",
+      "mime_type": "application/pdf",
+      "status": "ingested",
+      "metadata": {
+        "author": "jordan",
+        "evidence_id": "E-engineering-readiness"
+      }
+    },
+    {
+      "id": "ART-gdpr-policy",
+      "type": "policy_doc",
+      "source_type": "policy_doc",
+      "title": "GDPR Data Processing Policy v2.1",
+      "workspace_id": "default",
+      "sensitivity": "confidential",
+      "mime_type": "application/pdf",
+      "status": "ingested",
+      "metadata": {
+        "version": "2.1",
+        "effective_date": "2026-01-01",
+        "evidence_id": "E-gdpr-policy"
+      }
+    },
+    {
+      "id": "ART-staging-results",
+      "type": "prd",
+      "source_type": "document",
+      "title": "Staging Environment Test Results — March 2026",
+      "workspace_id": "default",
+      "sensitivity": "internal",
+      "mime_type": "text/plain",
+      "status": "ingested",
+      "metadata": {
+        "author": "jordan",
+        "evidence_id": "E-staging-results"
+      }
+    },
+    {
+      "id": "ART-q1-retro-transcript",
+      "type": "transcript",
+      "source_type": "meeting_transcript",
+      "title": "Q1 Retrospective & Q2 Planning — March 15, 2026",
+      "workspace_id": "default",
+      "sensitivity": "internal",
+      "mime_type": "text/plain",
+      "status": "ingested",
+      "metadata": {
+        "meeting_id": "M-q1-retrospective",
+        "participants": ["Alex Chen", "Jordan Lee", "Riley Kim"],
+        "duration_minutes": 60
+      }
+    }
+  ],
+
+  "resolution_cases": [
+    {
+      "id": "RC-dpa-blocker",
+      "title": "Resolve: Vendor DPA Must Be Signed Before Go-Live",
+      "description": "The beta launch is blocked until the vendor Data Processing Agreement is signed. Legal review cannot begin without the DPA document. Risk of missing the April 15 launch date is high.",
+      "case_type": "launch_blocker",
+      "status": "awaiting_review",
+      "severity": "critical",
+      "autonomy_mode": "recommend",
+      "created_at": "2026-04-01T12:00:00Z",
+      "created_by": "alex",
+      "trigger_source": "manual",
+      "workspace_id": "default",
+      "target_id": "D-dpa-required"
+    },
+    {
+      "id": "RC-qa-dependency",
+      "title": "Resolve: QA Sign-off Dependency on Launch Timeline",
+      "description": "QA sign-off is required before launch. Jordan has committed to April 8. Resolution monitors the dependency and sends reminders if the due date is at risk.",
+      "case_type": "dependency_cluster",
+      "status": "resolved",
+      "severity": "medium",
+      "autonomy_mode": "auto_low_risk",
+      "created_at": "2026-04-01T12:30:00Z",
+      "created_by": "alex",
+      "trigger_source": "manual",
+      "workspace_id": "default",
+      "target_id": "D-qa-signoff"
+    },
+    {
+      "id": "RC-churn-contradiction",
+      "title": "Resolve: Contradictory Churn Assumptions in Launch Decision",
+      "description": "Two conflicting assumptions exist about churn for the beta cohort. One assumes under 5% (based on Q1 power users), another flags risk of higher churn for a more general cohort. This contradiction needs explicit resolution before launch.",
+      "case_type": "contradiction",
+      "status": "monitoring",
+      "severity": "high",
+      "autonomy_mode": "escalate_only",
+      "created_at": "2026-04-02T08:00:00Z",
+      "created_by": "riley",
+      "trigger_source": "manual",
+      "workspace_id": "default",
+      "target_id": "A-churn-low"
+    },
+    {
+      "id": "RC-runbook-staleness",
+      "title": "Resolve: Stale On-Call Runbook Approval Gate",
+      "description": "The on-call runbook update was approved in Q3 2025 but has not been re-reviewed since then. With the upcoming beta launch adding new incident scenarios, a re-approval is needed.",
+      "case_type": "stale_approval",
+      "status": "open",
+      "severity": "medium",
+      "autonomy_mode": "recommend",
+      "created_at": "2026-04-02T09:30:00Z",
+      "created_by": "jordan",
+      "trigger_source": "manual",
+      "workspace_id": "default",
+      "target_id": "D-runbook-update"
+    }
+  ],
+
+  "resolution_risk_assessments": [
+    {
+      "id": "RA-dpa-blocker",
+      "case_id": "RC-dpa-blocker",
+      "risk_score": 87,
+      "blast_radius_score": 90,
+      "staleness_score": 45,
+      "contradiction_score": 20,
+      "dependency_score": 85,
+      "notes": "High blast radius: DPA block affects the entire April 15 launch date. Dependency chain includes legal review, QA signoff, and final PM approval. Staleness moderate — issue is recent (April 1). Contradiction low — all parties agree DPA is required.",
+      "created_at": "2026-04-01T12:05:00Z"
+    },
+    {
+      "id": "RA-qa-dependency",
+      "case_id": "RC-qa-dependency",
+      "risk_score": 42,
+      "blast_radius_score": 55,
+      "staleness_score": 10,
+      "contradiction_score": 5,
+      "dependency_score": 60,
+      "notes": "Moderate risk. Jordan has confirmed April 8 delivery with staging already stable. Low contradiction, no staleness. Dependency score elevated because QA is on the critical path.",
+      "created_at": "2026-04-01T12:35:00Z"
+    },
+    {
+      "id": "RA-churn-contradiction",
+      "case_id": "RC-churn-contradiction",
+      "risk_score": 68,
+      "blast_radius_score": 70,
+      "staleness_score": 20,
+      "contradiction_score": 80,
+      "dependency_score": 50,
+      "notes": "High contradiction score — two directly conflicting assumptions about churn from the same meeting. Blast radius is high as the launch decision depends on churn projection. Needs explicit resolution from analytics team.",
+      "created_at": "2026-04-02T08:05:00Z"
+    },
+    {
+      "id": "RA-runbook-staleness",
+      "case_id": "RC-runbook-staleness",
+      "risk_score": 38,
+      "blast_radius_score": 40,
+      "staleness_score": 75,
+      "contradiction_score": 5,
+      "dependency_score": 30,
+      "notes": "Primary concern is staleness — runbook approval is 6+ months old. Blast radius moderate as runbook covers incident response for all beta users. No active contradictions.",
+      "created_at": "2026-04-02T09:35:00Z"
+    }
+  ],
+
+  "resolution_plans": [
+    {
+      "id": "RP-dpa-blocker",
+      "case_id": "RC-dpa-blocker",
+      "summary": "Two-step plan: (1) Send immediate reminder to Jordan to follow up with vendor today. (2) Draft escalation memo to Sam to confirm legal review timeline and flag risk to launch date if DPA is not received by April 5.",
+      "risk_score": 72,
+      "confidence_score": 0.83,
+      "generated_at": "2026-04-01T12:10:00Z",
+      "model_name": "gemini-2.0-flash"
+    },
+    {
+      "id": "RP-qa-dependency",
+      "case_id": "RC-qa-dependency",
+      "summary": "Low-risk resolution: Send automated reminder to Jordan one day before April 8 deadline. Monitor QA ticket status. Auto-resolve case when QA sign-off is recorded.",
+      "risk_score": 25,
+      "confidence_score": 0.91,
+      "generated_at": "2026-04-01T12:40:00Z",
+      "model_name": "gemini-2.0-flash"
+    },
+    {
+      "id": "RP-churn-contradiction",
+      "case_id": "RC-churn-contradiction",
+      "summary": "Escalation-only plan: Request Riley Kim to provide a definitive churn estimate reconciling Q1 power-user data with general cohort risk. Prepare a summary of the contradiction for the April 10 go/no-go call. No automated actions taken without explicit PM review.",
+      "risk_score": 55,
+      "confidence_score": 0.74,
+      "generated_at": "2026-04-02T08:10:00Z",
+      "model_name": "gemini-2.0-flash"
+    }
+  ],
+
+  "proposed_actions": [
+    {
+      "id": "PA-remind-jordan-vendor",
+      "plan_id": "RP-dpa-blocker",
+      "action_type": "send_reminder",
+      "status": "queued_for_review",
+      "risk_level": "low",
+      "requires_review": true,
+      "target_type": "Person",
+      "target_id": "jordan",
+      "reason": "Jordan Lee was assigned to chase the vendor for the DPA document by April 5. A reminder via the digiTwin agent will prompt immediate action.",
+      "policy_path": ["alex", "beta-launch-owner", "execute:send-reminder"],
+      "evidence_refs": ["E-gdpr-policy", "T-chase-vendor-dpa"]
+    },
+    {
+      "id": "PA-draft-legal-escalation",
+      "plan_id": "RP-dpa-blocker",
+      "action_type": "draft_escalation",
+      "status": "allowed",
+      "risk_level": "medium",
+      "requires_review": false,
+      "target_type": "Person",
+      "target_id": "sam",
+      "reason": "Sam Patel holds the legal review gate. An escalation draft will clearly communicate the April 5 vendor deadline and April 10 review deadline to reduce ambiguity on the critical path.",
+      "policy_path": ["alex", "beta-launch-owner", "execute:escalate"],
+      "evidence_refs": ["D-dpa-required", "AP-legal-review"]
+    },
+    {
+      "id": "PA-remind-jordan-qa",
+      "plan_id": "RP-qa-dependency",
+      "action_type": "send_reminder",
+      "status": "executed",
+      "risk_level": "low",
+      "requires_review": false,
+      "target_type": "Person",
+      "target_id": "jordan",
+      "reason": "Automated reminder sent one day before the April 8 QA sign-off deadline.",
+      "policy_path": ["alex", "pm", "execute:send-reminder"],
+      "evidence_refs": ["T-qa-signoff", "AP-qa-signoff"],
+      "executed_at": "2026-04-07T09:00:00Z"
+    },
+    {
+      "id": "PA-churn-escalation",
+      "plan_id": "RP-churn-contradiction",
+      "action_type": "draft_escalation",
+      "status": "queued_for_review",
+      "risk_level": "high",
+      "requires_review": true,
+      "target_type": "Person",
+      "target_id": "riley",
+      "reason": "Riley Kim is the analytics owner. The churn contradiction between A-churn-low and A-churn-contradicted requires explicit resolution. An escalation draft will request a definitive estimate before the April 10 go/no-go call.",
+      "policy_path": ["riley", "analyst"],
+      "evidence_refs": ["A-churn-low", "A-churn-contradicted", "E-q1-churn-report"]
+    },
+    {
+      "id": "PA-followup-check-dpa",
+      "plan_id": "RP-dpa-blocker",
+      "action_type": "schedule_followup_check",
+      "status": "allowed",
+      "risk_level": "low",
+      "requires_review": false,
+      "target_type": "Task",
+      "target_id": "T-chase-vendor-dpa",
+      "reason": "Schedule an automated follow-up check on April 6 to verify DPA document was received by April 5 deadline.",
+      "policy_path": ["alex", "beta-launch-owner"],
+      "evidence_refs": ["T-chase-vendor-dpa"]
+    }
+  ]
+}

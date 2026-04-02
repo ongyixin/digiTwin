@@ -1,0 +1,114 @@
+{
+  "name": "ingest_prd",
+  "version": "1.0.0",
+  "description": "Ingest a PRD, RFC, or design spec and extract product intelligence graph entities",
+  "nodes": [
+    {
+      "id": "source",
+      "type": "webhook",
+      "config": {
+        "path": "/ingest/artifact",
+        "method": "POST",
+        "filter": {"artifact_type": ["prd", "rfc", "postmortem"]}
+      }
+    },
+    {
+      "id": "pii_scan",
+      "type": "pii_anonymizer",
+      "config": {"redact": false}
+    },
+    {
+      "id": "provenance_register",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/provenance_register.py",
+        "action": "upsert_artifact_version"
+      }
+    },
+    {
+      "id": "layout_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "task": "extract_text_from_pdf",
+        "supports_file_api": true
+      }
+    },
+    {
+      "id": "section_splitter",
+      "type": "text_chunker",
+      "config": {
+        "strategy": "section_headers",
+        "fallback": "paragraph",
+        "max_words": 2000
+      }
+    },
+    {
+      "id": "entity_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "prompt_file": "../backend/app/prompts/extract_prd.txt",
+        "output_format": "json",
+        "temperature": 0.1,
+        "input_fields": ["content", "title", "artifact_type"]
+      }
+    },
+    {
+      "id": "relationship_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "prompt_file": "../backend/app/prompts/extract_relationships.txt",
+        "output_format": "json",
+        "temperature": 0.1
+      }
+    },
+    {
+      "id": "embedding_generator",
+      "type": "embedder",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-embedding-001",
+        "dimensions": 768,
+        "fields_to_embed": ["product_goals[].title", "requirements[].title", "decisions[].summary"]
+      }
+    },
+    {
+      "id": "neo4j_writer",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "entity_types": ["product_goals", "requirements", "kpis", "open_questions", "decisions", "tasks"],
+        "env": {
+          "NEO4J_URI": "${NEO4J_URI}",
+          "NEO4J_USER": "${NEO4J_USER}",
+          "NEO4J_PASSWORD": "${NEO4J_PASSWORD}"
+        }
+      }
+    },
+    {
+      "id": "audit_emitter",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "action": "create_agent_action",
+        "action_type": "ingest_prd"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "source", "to": "pii_scan" },
+    { "from": "pii_scan", "to": "provenance_register" },
+    { "from": "provenance_register", "to": "layout_extractor" },
+    { "from": "layout_extractor", "to": "section_splitter" },
+    { "from": "section_splitter", "to": "entity_extractor" },
+    { "from": "entity_extractor", "to": "relationship_extractor" },
+    { "from": "relationship_extractor", "to": "embedding_generator" },
+    { "from": "embedding_generator", "to": "neo4j_writer" },
+    { "from": "neo4j_writer", "to": "audit_emitter" }
+  ]
+}

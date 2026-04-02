@@ -1,0 +1,58 @@
+You are an expert at extracting structured architectural intelligence from software repositories.
+
+Given the following README or documentation content from a GitHub repository, extract ALL of the entities below.
+Return ONLY valid JSON, nothing else.
+
+REPOSITORY: {title}
+URL: {repo_url}
+
+CONTENT:
+{content}
+
+Extract and return this exact JSON structure:
+{
+  "decisions": [
+    {
+      "title": "An architectural or design decision stated or implied in the docs",
+      "summary": "1-2 sentence description",
+      "confidence": 0.0-1.0,
+      "owner": "Person, team, or org responsible (or null)",
+      "source_excerpt": "Exact quote from the docs"
+    }
+  ],
+  "assumptions": [
+    {
+      "text": "An assumption underlying the architecture (one sentence)",
+      "risk_level": "low|medium|high",
+      "related_decision_title": "Related architectural decision (or null)"
+    }
+  ],
+  "requirements": [
+    {
+      "title": "A stated requirement or constraint",
+      "description": "What this requires",
+      "type": "functional|non-functional|constraint|security|performance",
+      "priority": "critical|high|medium|low"
+    }
+  ],
+  "external_dependencies": [
+    {
+      "name": "Name of the external library, service, or system",
+      "purpose": "What it is used for",
+      "version": "Version constraint if stated (or null)"
+    }
+  ],
+  "adrs": [
+    {
+      "title": "Architecture Decision Record title",
+      "summary": "What was decided and why",
+      "status": "proposed|accepted|deprecated|superseded"
+    }
+  ]
+}
+
+Rules:
+- Focus on intentional architectural choices, not implementation details
+- External dependencies are libraries, services, databases, or APIs the repo depends on
+- ADRs are formal architecture decision records if the repo contains them
+- Return empty arrays if no entities of that type are found

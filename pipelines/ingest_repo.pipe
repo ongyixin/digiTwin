@@ -1,0 +1,101 @@
+{
+  "name": "ingest_repo",
+  "version": "1.0.0",
+  "description": "Ingest a GitHub repository: enumerate files, parse code with Tree-sitter, extract architectural entities",
+  "nodes": [
+    {
+      "id": "source",
+      "type": "webhook",
+      "config": {
+        "path": "/ingest/artifact",
+        "method": "POST",
+        "filter": {"artifact_type": ["github_repo"]}
+      }
+    },
+    {
+      "id": "github_auth",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/github_auth.py",
+        "action": "get_installation_token",
+        "env": {
+          "GITHUB_APP_ID": "${GITHUB_APP_ID}",
+          "GITHUB_APP_PRIVATE_KEY": "${GITHUB_APP_PRIVATE_KEY}",
+          "GITHUB_ACCESS_TOKEN": "${GITHUB_ACCESS_TOKEN}"
+        }
+      }
+    },
+    {
+      "id": "repo_enumerator",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/github_auth.py",
+        "action": "enumerate_repo",
+        "max_files": 200,
+        "relevant_extensions": [".py", ".js", ".ts", ".tsx", ".go", ".java", ".md", ".yaml", ".toml"]
+      }
+    },
+    {
+      "id": "code_parser",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/code_parser.py",
+        "action": "extract_symbols",
+        "use_tree_sitter": true
+      }
+    },
+    {
+      "id": "architecture_extractor",
+      "type": "llm",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "prompt_file": "../backend/app/prompts/extract_repo.txt",
+        "output_format": "json",
+        "temperature": 0.1,
+        "input_fields": ["content", "repo_url", "title"]
+      }
+    },
+    {
+      "id": "embedding_generator",
+      "type": "embedder",
+      "config": {
+        "provider": "gemini",
+        "model": "gemini-embedding-001",
+        "dimensions": 768,
+        "fields_to_embed": ["symbols[].docstring", "decisions[].summary", "requirements[].title"]
+      }
+    },
+    {
+      "id": "neo4j_writer",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "entity_types": ["repositories", "symbols", "decisions", "requirements", "external_dependencies", "adrs"],
+        "env": {
+          "NEO4J_URI": "${NEO4J_URI}",
+          "NEO4J_USER": "${NEO4J_USER}",
+          "NEO4J_PASSWORD": "${NEO4J_PASSWORD}"
+        }
+      }
+    },
+    {
+      "id": "audit_emitter",
+      "type": "custom_python",
+      "config": {
+        "script": "nodes/neo4j_upsert.py",
+        "action": "create_agent_action",
+        "action_type": "ingest_repo"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "source", "to": "github_auth" },
+    { "from": "github_auth", "to": "repo_enumerator" },
+    { "from": "repo_enumerator", "to": "code_parser" },
+    { "from": "code_parser", "to": "architecture_extractor" },
+    { "from": "architecture_extractor", "to": "embedding_generator" },
+    { "from": "embedding_generator", "to": "neo4j_writer" },
+    { "from": "neo4j_writer", "to": "audit_emitter" }
+  ]
+}

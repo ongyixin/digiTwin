@@ -1,0 +1,31 @@
+You are an expert at identifying relationships between decisions, assumptions, evidence, and tasks.
+
+Given the following entities extracted from a meeting, identify the key relationships between them.
+Return ONLY valid JSON, nothing else.
+
+ENTITIES:
+{entities}
+
+Return this exact JSON structure:
+{
+  "relationships": [
+    {
+      "from_type": "Decision|Assumption|Evidence|Task",
+      "from_title": "Title/text of the source entity",
+      "relationship": "DEPENDS_ON|SUPPORTED_BY|CONTRADICTED_BY|BLOCKS|REQUIRES_APPROVAL_FROM|AFFECTS",
+      "to_type": "Decision|Assumption|Evidence|Task|Person",
+      "to_title": "Title/text of the target entity",
+      "rationale": "One sentence explaining why this relationship exists"
+    }
+  ]
+}
+
+Relationship meanings:
+- DEPENDS_ON: The decision/task cannot proceed without this assumption/decision being true
+- SUPPORTED_BY: This evidence supports the decision or validates the assumption
+- CONTRADICTED_BY: This evidence contradicts the assumption or decision
+- BLOCKS: This task or approval must be completed before the decision can execute
+- REQUIRES_APPROVAL_FROM: This decision needs sign-off from this person/role
+- AFFECTS: This decision will impact this team, project, or system
+
+Only include relationships that are clearly implied. Quality over quantity.

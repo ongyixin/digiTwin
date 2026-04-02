@@ -1,0 +1,46 @@
+// Knowledge entities
+CREATE CONSTRAINT decision_id IF NOT EXISTS FOR (d:Decision) REQUIRE d.id IS UNIQUE;
+CREATE CONSTRAINT assumption_id IF NOT EXISTS FOR (a:Assumption) REQUIRE a.id IS UNIQUE;
+CREATE CONSTRAINT evidence_id IF NOT EXISTS FOR (e:Evidence) REQUIRE e.id IS UNIQUE;
+CREATE CONSTRAINT meeting_id IF NOT EXISTS FOR (m:Meeting) REQUIRE m.id IS UNIQUE;
+CREATE CONSTRAINT document_id IF NOT EXISTS FOR (d:Document) REQUIRE d.id IS UNIQUE;
+CREATE CONSTRAINT task_id IF NOT EXISTS FOR (t:Task) REQUIRE t.id IS UNIQUE;
+CREATE CONSTRAINT person_id IF NOT EXISTS FOR (p:Person) REQUIRE p.id IS UNIQUE;
+CREATE CONSTRAINT team_id IF NOT EXISTS FOR (t:Team) REQUIRE t.id IS UNIQUE;
+CREATE CONSTRAINT project_id IF NOT EXISTS FOR (p:Project) REQUIRE p.id IS UNIQUE;
+CREATE CONSTRAINT approval_id IF NOT EXISTS FOR (a:Approval) REQUIRE a.id IS UNIQUE;
+CREATE CONSTRAINT agent_action_id IF NOT EXISTS FOR (aa:AgentAction) REQUIRE aa.id IS UNIQUE;
+
+CREATE CONSTRAINT review_task_id IF NOT EXISTS FOR (rt:ReviewTask) REQUIRE rt.id IS UNIQUE;
+
+// Permission entities
+CREATE CONSTRAINT role_id IF NOT EXISTS FOR (r:Role) REQUIRE r.id IS UNIQUE;
+CREATE CONSTRAINT permission_id IF NOT EXISTS FOR (p:Permission) REQUIRE p.id IS UNIQUE;
+CREATE CONSTRAINT resource_id IF NOT EXISTS FOR (r:Resource) REQUIRE r.id IS UNIQUE;
+CREATE CONSTRAINT scope_id IF NOT EXISTS FOR (s:Scope) REQUIRE s.id IS UNIQUE;
+CREATE CONSTRAINT delegation_id IF NOT EXISTS FOR (d:Delegation) REQUIRE d.id IS UNIQUE;
+
+// Artifact provenance entities
+CREATE CONSTRAINT artifact_id IF NOT EXISTS FOR (a:Artifact) REQUIRE a.id IS UNIQUE;
+CREATE CONSTRAINT artifact_version_id IF NOT EXISTS FOR (av:ArtifactVersion) REQUIRE av.id IS UNIQUE;
+CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (c:Chunk) REQUIRE c.id IS UNIQUE;
+CREATE CONSTRAINT section_id IF NOT EXISTS FOR (s:Section) REQUIRE s.id IS UNIQUE;
+CREATE CONSTRAINT source_span_id IF NOT EXISTS FOR (ss:SourceSpan) REQUIRE ss.id IS UNIQUE;
+
+// Autonomous Resolution Engine entities
+CREATE CONSTRAINT resolution_case_id IF NOT EXISTS FOR (rc:ResolutionCase) REQUIRE rc.id IS UNIQUE;
+CREATE CONSTRAINT resolution_plan_id IF NOT EXISTS FOR (rp:ResolutionPlan) REQUIRE rp.id IS UNIQUE;
+CREATE CONSTRAINT proposed_action_id IF NOT EXISTS FOR (pa:ProposedAction) REQUIRE pa.id IS UNIQUE;
+CREATE CONSTRAINT risk_assessment_id IF NOT EXISTS FOR (ra:RiskAssessment) REQUIRE ra.id IS UNIQUE;
+CREATE CONSTRAINT monitoring_watch_id IF NOT EXISTS FOR (mw:MonitoringWatch) REQUIRE mw.id IS UNIQUE;
+CREATE CONSTRAINT review_decision_id IF NOT EXISTS FOR (rd:ReviewDecision) REQUIRE rd.id IS UNIQUE;
+
+// Artifact-type-specific entity constraints
+CREATE CONSTRAINT policy_id IF NOT EXISTS FOR (p:Policy) REQUIRE p.id IS UNIQUE;
+CREATE CONSTRAINT control_id IF NOT EXISTS FOR (c:Control) REQUIRE c.id IS UNIQUE;
+CREATE CONSTRAINT obligation_id IF NOT EXISTS FOR (o:Obligation) REQUIRE o.id IS UNIQUE;
+CREATE CONSTRAINT requirement_id IF NOT EXISTS FOR (r:Requirement) REQUIRE r.id IS UNIQUE;
+CREATE CONSTRAINT product_goal_id IF NOT EXISTS FOR (pg:ProductGoal) REQUIRE pg.id IS UNIQUE;
+CREATE CONSTRAINT repository_id IF NOT EXISTS FOR (r:Repository) REQUIRE r.id IS UNIQUE;
+CREATE CONSTRAINT symbol_id IF NOT EXISTS FOR (s:Symbol) REQUIRE s.id IS UNIQUE;
+CREATE CONSTRAINT speaker_turn_id IF NOT EXISTS FOR (st:SpeakerTurn) REQUIRE st.id IS UNIQUE;

@@ -1,0 +1,67 @@
+You are an expert at extracting structured compliance and policy intelligence from documents.
+
+Given the following document content, extract ALL of the entities below. Return ONLY valid JSON, nothing else.
+
+DOCUMENT CONTENT:
+{content}
+
+DOCUMENT CONTEXT:
+- Title: {title}
+- Type: {artifact_type}
+
+Extract and return this exact JSON structure:
+{
+  "policies": [
+    {
+      "title": "Short policy name (max 10 words)",
+      "description": "1-2 sentence description of what this policy governs",
+      "owner": "Person or team responsible (or null)",
+      "effective_date": "YYYY-MM-DD if mentioned (or null)",
+      "scope": "What teams, systems, or processes this policy covers"
+    }
+  ],
+  "controls": [
+    {
+      "title": "Short control name (max 10 words)",
+      "description": "What this control requires or prohibits",
+      "policy_title": "Title of the policy this control implements (or null)"
+    }
+  ],
+  "obligations": [
+    {
+      "text": "The obligation in one clear sentence",
+      "mandatory": true,
+      "policy_title": "Title of the policy this obligation belongs to (or null)"
+    }
+  ],
+  "decisions": [
+    {
+      "title": "A formal decision or position stated in the document",
+      "summary": "1-2 sentences",
+      "confidence": 0.0-1.0,
+      "owner": "Person or team (or null)",
+      "source_excerpt": "Exact quote"
+    }
+  ],
+  "assumptions": [
+    {
+      "text": "Assumption underlying the policy (one sentence)",
+      "risk_level": "low|medium|high",
+      "related_decision_title": "Related decision (or null)"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "What needs to be done to comply",
+      "assignee": "Person responsible (or null)",
+      "due_date": "YYYY-MM-DD if mentioned (or null)",
+      "related_decision_title": "Related policy/decision (or null)"
+    }
+  ]
+}
+
+Rules:
+- Extract only what is explicitly stated or strongly implied in the document
+- Be specific about obligations vs. recommendations (mandatory vs. advisory)
+- Policy owner should match a person or team name from the document
+- Return empty arrays if no entities of that type are found

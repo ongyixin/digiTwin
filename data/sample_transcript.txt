@@ -1,0 +1,50 @@
+Beta Launch Review Meeting
+April 1, 2026 | 10:00 AM - 11:30 AM
+Attendees: Alex Chen (PM), Jordan Lee (Engineering Lead), Sam Patel (Legal), Riley Kim (Analytics)
+
+---
+
+Alex Chen: Alright, let's get started. Today we're reviewing whether we're ready to launch the beta to our first cohort of users. I want us to walk through the key questions: timeline, legal, analytics coverage, and churn risk.
+
+Jordan Lee: Engineering is ready. All the P0 bugs are resolved. We've been running in staging for three weeks with no critical issues. I'm confident we can ship.
+
+Alex Chen: Great. So let's formally decide: we will launch to beta users on April 15. Sam, is legal in a position to sign off?
+
+Sam Patel: We still need to complete the data processing agreement review. That's a hard dependency. Legal sign-off is not done yet — I'd estimate we can complete it by April 10 if we get the DPA document from the vendor by end of this week.
+
+Alex Chen: Okay, that's a blocker. Jordan, can you chase the vendor on the DPA today?
+
+Jordan Lee: Yes, I'll send a follow-up this afternoon.
+
+Alex Chen: Riley, where are we on analytics instrumentation?
+
+Riley Kim: We have 87% coverage on the key user flows. The checkout and onboarding funnels are fully instrumented. The one gap is the referral flow — we don't have visibility into what happens after a user shares a referral link. That's a medium priority; I don't think it blocks launch.
+
+Alex Chen: Agreed. Let's note that as an assumption: analytics instrumentation is complete enough to measure churn and activation accurately, even though referral tracking is incomplete.
+
+Jordan Lee: I'd also call out that our assumption on churn impact is based on the Q1 Churn Analysis report that Riley shared last month. We're assuming that the beta cohort will behave similarly to our Q1 power users and that churn impact will be low — under 5% monthly.
+
+Riley Kim: Right. That report showed 3.2% monthly churn for the top-engagement segment in Q1. If the beta cohort is more general, we might see higher numbers. But based on the selection criteria Alex defined, I think the assumption holds.
+
+Alex Chen: Good. So the decision is locked: launch beta on April 15. Key assumptions are: churn impact under 5%, legal sign-off complete by April 10, analytics instrumentation sufficient. Blockers are the DPA review from Sam and the QA signoff from Jordan.
+
+Jordan Lee: I'll have QA signoff by April 8.
+
+Sam Patel: I need the vendor DPA by April 5 to hit April 10. I'll send a formal approval once we have it.
+
+Alex Chen: Let's capture this as a formal decision. Jordan, please also make sure the on-call runbook is updated before launch day — that's a dependency on engineering being ready to respond to incidents.
+
+Jordan Lee: That's already in progress. Should be done by April 12.
+
+Alex Chen: Perfect. Riley, one more thing — the Q1 Churn Analysis report should be formally linked as evidence for this decision. Can you share the doc link in Slack?
+
+Riley Kim: Will do.
+
+Alex Chen: Alright, that's the decision. April 15 beta launch. Blockers: legal DPA and QA signoff. Assumptions: low churn, legal complete, analytics sufficient. All good?
+
+[General agreement from the group]
+
+Alex Chen: Great. I'll send the decision memo to the broader team after this. Sam and Jordan — you two own the critical path. Let's meet again on April 10 for a go/no-go call.
+
+---
+[End of meeting]

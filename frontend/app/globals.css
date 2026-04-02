@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 13% 95%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Core palette */
+    --background: 228 14% 5%;
+    --foreground: 210 20% 92%;
+    --card: 225 12% 8%;
+    --card-foreground: 210 20% 92%;
+    --popover: 225 12% 8%;
+    --popover-foreground: 210 20% 92%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 222 14% 13%;
+    --secondary-foreground: 210 20% 92%;
+    --muted: 225 10% 12%;
+    --muted-foreground: 215 12% 52%;
+    --accent: 222 14% 13%;
+    --accent-foreground: 210 20% 92%;
+    --destructive: 0 63% 51%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 225 10% 14%;
+    --input: 225 10% 11%;
+    --ring: 217 91% 60%;
+
+    /* Surface elevation */
+    --surface-0: 228 15% 4%;
+    --surface-1: 225 12% 8%;
+    --surface-2: 224 12% 11%;
+    --surface-3: 222 12% 14%;
+
+    /* Semantic accent colors (raw hsl values for use with hsl()) */
+    --accent-emerald: 158 64% 52%;
+    --accent-amber: 38 92% 50%;
+    --accent-crimson: 0 72% 51%;
+    --accent-violet: 263 70% 50%;
+    --accent-blue: 217 91% 60%;
+
+    /* Glow effects */
+    --glow-primary: 0 0 20px hsl(217 91% 60% / 0.18), 0 0 40px hsl(217 91% 60% / 0.08);
+    --glow-emerald: 0 0 20px hsl(158 64% 52% / 0.15), 0 0 40px hsl(158 64% 52% / 0.06);
+    --glow-amber: 0 0 20px hsl(38 92% 50% / 0.15), 0 0 40px hsl(38 92% 50% / 0.06);
+    --glow-crimson: 0 0 20px hsl(0 72% 51% / 0.18), 0 0 40px hsl(0 72% 51% / 0.08);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    font-size: 16px;
+  }
+  body {
+    @apply bg-background text-foreground antialiased text-base;
+    background-image: radial-gradient(ellipse at 60% 0%, hsl(217 91% 60% / 0.04) 0%, transparent 70%);
+  }
+}
+
+/* ── Utility classes ─────────────────────────────────────── */
+@layer utilities {
+  .surface-glow {
+    box-shadow: var(--glow-primary);
+  }
+  .surface-glow-emerald {
+    box-shadow: var(--glow-emerald);
+  }
+  .surface-glow-amber {
+    box-shadow: var(--glow-amber);
+  }
+  .surface-glow-crimson {
+    box-shadow: var(--glow-crimson);
+  }
+
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient-primary {
+    border-image: linear-gradient(90deg, hsl(var(--primary)), transparent) 1;
+  }
+}
+
+/* ── Keyframes ───────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes graph-fade {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-left {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Animation classes ───────────────────────────────────── */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--surface-2, var(--secondary))) 40%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+.animate-graph-fade {
+  animation: graph-fade 0.4s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+.dark ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* ── Gradient rule ───────────────────────────────────────── */
+.gradient-rule {
+  height: 1px;
+  background: linear-gradient(90deg, hsl(var(--primary) / 0.5) 0%, transparent 60%);
+}
