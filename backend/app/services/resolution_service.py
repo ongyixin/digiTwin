@@ -1,9 +1,13 @@
 """Core orchestrator for the Autonomous Resolution Engine."""
 
+import logging
+import traceback
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 from neo4j import AsyncDriver
+
+logger = logging.getLogger(__name__)
 
 from app.llm.base import LLMProvider
 from app.services import resolution_event_service as events
@@ -110,6 +114,7 @@ class ResolutionService:
             await self._update_case(case_id, {"status": new_status})
 
         except Exception as e:
+            logger.error("Resolution case %s failed: %s\n%s", case_id, e, traceback.format_exc())
             await self._update_case(case_id, {"status": "failed", "error": str(e)})
 
     async def get_case(self, case_id: str) -> Optional[dict[str, Any]]:

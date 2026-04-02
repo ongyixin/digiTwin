@@ -12,6 +12,7 @@ Run after init_neo4j.py:
     python scripts/seed_demo.py
 """
 
+import importlib.util
 import json
 import os
 import sys
@@ -657,6 +658,18 @@ def main():
 
     print("\n=== Seed complete ===")
     driver.close()
+
+    # Back-fill embeddings so vector search works immediately after seeding
+    print("\n=== Embedding graph nodes for vector search ===")
+    try:
+        embed_mod_path = os.path.join(os.path.dirname(__file__), "embed_graph_nodes.py")
+        spec = importlib.util.spec_from_file_location("embed_graph_nodes", embed_mod_path)
+        embed_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(embed_mod)
+        embed_mod.main()
+    except Exception as exc:
+        print(f"WARNING: embedding step failed: {exc}")
+        print("Run 'python scripts/embed_graph_nodes.py' manually to enable vector search.")
 
 
 if __name__ == "__main__":

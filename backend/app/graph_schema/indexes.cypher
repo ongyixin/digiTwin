@@ -1,19 +1,19 @@
-// Vector indexes (HNSW, cosine, 768 dims for gemini-embedding-001)
+// Vector indexes (HNSW, cosine, 3072 dims for gemini-embedding-001)
 CREATE VECTOR INDEX decision_embedding IF NOT EXISTS
 FOR (d:Decision) ON (d.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 CREATE VECTOR INDEX assumption_embedding IF NOT EXISTS
 FOR (a:Assumption) ON (a.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 CREATE VECTOR INDEX evidence_embedding IF NOT EXISTS
 FOR (e:Evidence) ON (e.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 CREATE VECTOR INDEX document_embedding IF NOT EXISTS
 FOR (d:Document) ON (d.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 // Fulltext index for keyword search
 CREATE FULLTEXT INDEX knowledge_fulltext IF NOT EXISTS
@@ -42,19 +42,19 @@ CREATE INDEX approval_created_at IF NOT EXISTS FOR (ap:Approval) ON (ap.created_
 // Artifact provenance vector index (768-dim, matches Gemini embedding)
 CREATE VECTOR INDEX chunk_embedding IF NOT EXISTS
 FOR (c:Chunk) ON (c.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 CREATE VECTOR INDEX symbol_embedding IF NOT EXISTS
 FOR (s:Symbol) ON (s.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 CREATE VECTOR INDEX policy_embedding IF NOT EXISTS
 FOR (p:Policy) ON (p.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 CREATE VECTOR INDEX requirement_embedding IF NOT EXISTS
 FOR (r:Requirement) ON (r.embedding)
-OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
+OPTIONS {indexConfig: {`vector.dimensions`: 3072, `vector.similarity_function`: 'cosine'}};
 
 // Artifact composite indexes for filtered retrieval
 CREATE INDEX artifact_workspace_type IF NOT EXISTS FOR (a:Artifact) ON (a.workspace_id, a.type);

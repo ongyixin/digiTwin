@@ -3,12 +3,15 @@
 Supports artifact-aware filtering: by type, workspace, sensitivity, and time.
 """
 
+import logging
 from typing import Any, Optional
 
 from neo4j import AsyncDriver
 
 from app.llm.base import GenerateConfig, LLMProvider
 from app.models.api import Citation, QueryResponse
+
+logger = logging.getLogger(__name__)
 
 
 SYNTHESIS_PROMPT = """You are digiTwin, a decision intelligence assistant. Answer the user's question using ONLY the graph context provided below.
@@ -203,8 +206,8 @@ class RetrievalService:
                 for r in results:
                     if r["id"] and r["id"] not in all_results:
                         all_results[r["id"]] = r
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Vector search failed for index %s: %s", index_name, e)
 
         # Artifact-aware chunk search
         if include_chunks:

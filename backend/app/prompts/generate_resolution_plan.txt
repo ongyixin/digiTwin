@@ -51,22 +51,22 @@ Generate between 1 and 5 actions. Quality over quantity.
 Return ONLY the JSON object, no other text.
 
 Example:
-{
+{{
   "summary": "Two pending approvals are blocking the Q2 launch decision. Reminders will be sent to approvers and an update request will be filed.",
   "actions": [
-    {
+    {{
       "action_type": "send_reminder",
       "target_type": "approval",
       "target_id": "AP-abc123",
       "reason": "Approval has been pending for 5 days with no response",
       "evidence_refs": ["D-xyz789"]
-    },
-    {
+    }},
+    {{
       "action_type": "notify_owner",
       "target_type": "decision",
       "target_id": "D-xyz789",
       "reason": "Decision owner should be aware of approval bottleneck",
       "evidence_refs": []
-    }
+    }}
   ]
-}
+}}

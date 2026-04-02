@@ -23,9 +23,6 @@ def _load_prompt() -> str:
         return f.read()
 
 
-PLAN_PROMPT_TEMPLATE = _load_prompt()
-
-
 class PlannerService:
     def __init__(self, driver: AsyncDriver, llm: LLMProvider):
         self.driver = driver
@@ -196,7 +193,7 @@ class PlannerService:
             for c in contradictions
         ) or "None"
 
-        prompt = PLAN_PROMPT_TEMPLATE.format(
+        prompt = _load_prompt().format(
             case_id=context["case_id"],
             case_title=context["case_title"],
             case_type=context["case_type"],
