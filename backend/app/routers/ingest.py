@@ -6,16 +6,19 @@ Legacy endpoints (kept for backward compat): /transcript/async, /transcript, /te
 
 import asyncio
 import json
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Query, UploadFile, File
 
 from app.dependencies import get_driver, get_llm
 from app.models.api import IngestJobResponse, IngestResponse, JobState
 from app.models.artifact import ArtifactIngestRequest
 from app.services import job_service
+from app.services.github.github_app import GitHubAuth
 from app.services.artifact_classifier import classify_from_metadata, classify_from_content_preview
 from app.services.artifact_router import get_artifact_router
 from app.services.diff_service import DiffService
@@ -68,6 +71,9 @@ async def _run_ingest_job(
             twin_diff=twin_diff,
             meeting_id=result.meeting_id,
         )
+    except asyncio.CancelledError:
+        await job_service.mark_failed(job_id, "Job cancelled (server shutdown or reload)")
+        raise
     except Exception as exc:
         await job_service.mark_failed(job_id, str(exc))
         raise
@@ -123,6 +129,9 @@ async def _run_artifact_job(
             twin_diff=twin_diff,
             meeting_id=None,
         )
+    except asyncio.CancelledError:
+        await job_service.mark_failed(job_id, "Job cancelled (server shutdown or reload)")
+        raise
     except Exception as exc:
         await job_service.mark_failed(job_id, str(exc))
         raise
@@ -421,3 +430,50 @@ async def get_job(job_id: str) -> JobState:
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+@router.get("/github/branches")
+async def get_github_branches(repo_url: str = Query(...)) -> dict:
+    """Return branch list and default branch for a GitHub repository."""
+    match = re.match(
+        r"https?://github\.com/([^/]+)/([^/\s?#]+?)(?:\.git)?$",
+        repo_url.strip(),
+    )
+    if not match:
+        raise HTTPException(status_code=400, detail="Invalid GitHub repository URL")
+
+    owner, repo = match.group(1), match.group(2)
+    auth = GitHubAuth()
+    try:
+        token = await auth.get_token()
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            repo_resp = await client.get(
+                f"https://api.github.com/repos/{owner}/{repo}",
+                headers=headers,
+            )
+            repo_resp.raise_for_status()
+            default_branch = repo_resp.json().get("default_branch", "main")
+
+            branches_resp = await client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/branches",
+                headers=headers,
+                params={"per_page": 100},
+            )
+            branches_resp.raise_for_status()
+            branches = [b["name"] for b in branches_resp.json()]
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail=f"GitHub API error: {exc.response.text}",
+            )
+
+    return {"branches": branches, "default_branch": default_branch}

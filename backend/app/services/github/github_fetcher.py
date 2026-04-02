@@ -157,3 +157,32 @@ class GitHubFetcher:
             if resp.status_code == 200:
                 return resp.json()
         return []
+
+    async def fetch_commits(
+        self,
+        owner: str,
+        repo: str,
+        branch: str = "main",
+        limit: int = 100,
+    ) -> list[dict]:
+        """Fetch commit history, returning sha, message, author, and date."""
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            url = (
+                f"https://api.github.com/repos/{owner}/{repo}/commits"
+                f"?sha={branch}&per_page={min(limit, 100)}"
+            )
+            resp = await client.get(url, headers=self._headers())
+            if resp.status_code != 200:
+                return []
+            raw = resp.json()
+
+        commits = []
+        for c in raw:
+            commit_data = c.get("commit", {})
+            commits.append({
+                "sha": c.get("sha", "")[:12],
+                "message": commit_data.get("message", ""),
+                "author": commit_data.get("author", {}).get("name", ""),
+                "date": commit_data.get("author", {}).get("date", ""),
+            })
+        return commits

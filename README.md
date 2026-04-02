@@ -41,10 +41,10 @@ cp .env.example .env
 | `NEO4J_PASSWORD` | `digitwin2026` | Neo4j password |
 | `GEMINI_API_KEY` | — | **Required.** Google Gemini API key |
 | `ENVIRONMENT` | `development` | Runtime environment |
-| `TRANSCRIPTION_PROVIDER` | `gemini` | `gemini` or `openai` |
-| `OPENAI_API_KEY` | — | Required only when `TRANSCRIPTION_PROVIDER=openai` |
-| `GITHUB_ACCESS_TOKEN` | — | Optional. For GitHub repo ingestion |
-| `PII_REDACTION_ENABLED` | `false` | Redact PII before storing to graph |
+| `GITHUB_ACCESS_TOKEN` | — | Personal Access Token for GitHub repo ingestion (Option A) |
+| `GITHUB_APP_ID` | — | GitHub App ID for org-level access (Option B) |
+| `GITHUB_APP_PRIVATE_KEY` | — | GitHub App private key (Option B) |
+| `GITHUB_INSTALLATION_ID` | — | GitHub App installation ID (Option B) |
 
 ### 2. Start all services
 
@@ -365,6 +365,7 @@ GET /health
 | `POST` | `/api/ingest/artifact` | Upload a file or form fields; returns `job_id` immediately |
 | `POST` | `/api/ingest/artifact/url` | Ingest from URL, GCS path, or GitHub repo reference |
 | `POST` | `/api/ingest/bundle` | Ingest multiple artifacts in parallel; returns list of `job_id`s |
+| `GET` | `/api/ingest/github/branches` | List branches and default branch for a GitHub repo URL |
 | `GET` | `/api/ingest/jobs` | List recent ingestion jobs |
 | `GET` | `/api/ingest/jobs/{job_id}` | Get job state and stage progress |
 | `WS` | `/ws/jobs/{job_id}` | Stream real-time stage events for a job |
@@ -400,13 +401,33 @@ GET /health
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/graph` | Retrieve graph nodes and edges for visualization |
+| `GET` | `/api/graph/overview` | All nodes and edges for the dependency map (scoped by `workspace`) |
+| `GET` | `/api/graph/decisions` | List all decisions |
+| `GET` | `/api/graph/decisions/{id}/lineage` | Subgraph of a decision's full lineage |
+| `GET` | `/api/graph/decisions/{id}/impact` | Compute impact score for a decision |
+| `GET` | `/api/graph/timeline` | Decisions ordered by `created_at` with contradiction counts |
+
+### Artifacts
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/artifacts` | List active (non-archived) artifacts; filter by `workspace_id`, `artifact_type` |
+| `GET` | `/api/artifacts/archived` | List archived artifacts |
+| `GET` | `/api/artifacts/{id}` | Single artifact with version history |
+| `GET` | `/api/artifacts/{id}/chunks` | Text chunks for an artifact (without embeddings) |
+| `GET` | `/api/artifacts/{id}/diff` | Diff between the two most recent versions |
+| `POST` | `/api/artifacts/{id}/archive` | Archive an artifact (hides from main dashboard) |
+| `POST` | `/api/artifacts/{id}/unarchive` | Restore an archived artifact |
+| `DELETE` | `/api/artifacts/{id}` | Permanently delete an artifact and all associated data |
 
 ### Actions & Webhooks
 
 | Method | Path | Description |
 |---|---|---|
-| `GET/POST` | `/api/actions` | List or create agent actions |
+| `POST` | `/api/actions/draft-followups` | Draft policy-enforced follow-up messages |
+| `GET` | `/api/actions/history` | Last 50 agent actions ordered by timestamp |
+| `GET` | `/api/actions/review-inbox` | Pending human review tasks |
+| `POST` | `/api/actions/review/{id}/approve` | Approve or reject a review task (re-runs draft on approval) |
 | `POST` | `/api/webhooks/github` | GitHub webhook intake (push, PR events) |
 
 ---
@@ -490,4 +511,4 @@ The Next.js app expects the backend at `NEXT_PUBLIC_API_URL` (default `http://lo
 
 **GitHub ingestion fails**
 
-Set `GITHUB_ACCESS_TOKEN` (personal access token with `repo` scope) or configure the GitHub App credentials (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_INSTALLATION_ID`) in `.env`.
+Use Option A: set `GITHUB_ACCESS_TOKEN` (personal access token with `repo` scope). Use Option B for org-level or production access: set `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID` in `.env`. Only one option needs to be configured.

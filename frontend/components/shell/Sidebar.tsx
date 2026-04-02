@@ -62,7 +62,7 @@ export function Sidebar() {
             <Cpu className="w-3.5 h-3.5 text-primary" />
           </div>
           {!collapsed && (
-            <span className="font-semibold text-foreground tracking-tight text-sm">digiTwin</span>
+            <span className="font-semibold text-foreground tracking-tight text-sm">digiT<span className="text-yellow-400">win</span></span>
           )}
         </div>
 

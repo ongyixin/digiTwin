@@ -111,6 +111,11 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  getGitHubBranches: (repoUrl: string) =>
+    apiFetch<{ branches: string[]; default_branch: string }>(
+      `/api/ingest/github/branches?repo_url=${encodeURIComponent(repoUrl)}`
+    ),
+
   listJobs: () => apiFetch<JobState[]>("/api/ingest/jobs"),
 
   getJob: (jobId: string) => apiFetch<JobState>(`/api/ingest/jobs/${jobId}`),
@@ -119,6 +124,26 @@ export const api = {
     apiFetch<ArtifactRecord[]>(
       `/api/artifacts?workspace_id=${workspaceId}${type ? `&artifact_type=${type}` : ""}`
     ),
+
+  listArchivedArtifacts: (workspaceId: string = "default", type?: ArtifactType) =>
+    apiFetch<ArtifactRecord[]>(
+      `/api/artifacts/archived?workspace_id=${workspaceId}${type ? `&artifact_type=${type}` : ""}`
+    ),
+
+  archiveArtifact: (id: string) =>
+    apiFetch<{ success: boolean; artifact_id: string }>(`/api/artifacts/${id}/archive`, {
+      method: "POST",
+    }),
+
+  unarchiveArtifact: (id: string) =>
+    apiFetch<{ success: boolean; artifact_id: string }>(`/api/artifacts/${id}/unarchive`, {
+      method: "POST",
+    }),
+
+  deleteArtifact: (id: string) =>
+    apiFetch<{ success: boolean; artifact_id: string }>(`/api/artifacts/${id}`, {
+      method: "DELETE",
+    }),
 
   getDecisionImpact: (id: string) =>
     apiFetch<ImpactScore>(`/api/graph/decisions/${id}/impact`),

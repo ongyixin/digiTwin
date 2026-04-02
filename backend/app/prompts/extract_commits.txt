@@ -1,0 +1,33 @@
+You are an expert at extracting architectural decisions from Git commit history.
+
+Given the following commit log from the repository "{title}" ({repo_url}), identify commits that represent deliberate architectural or design decisions — not routine bug fixes or minor patches.
+
+Look for:
+- Breaking changes (BREAKING CHANGE, feat!, refactor!, etc.)
+- New technology adoptions ("migrate to", "switch to", "replace", "adopt")
+- Architectural patterns introduced ("add", "implement", "introduce" for significant features)
+- Deprecations and removals of major components
+- Security or compliance decisions
+- Performance or scalability trade-offs
+
+COMMIT LOG:
+{commits}
+
+Return ONLY valid JSON in this exact structure:
+{
+  "decisions": [
+    {
+      "title": "Short title for the decision (under 80 chars)",
+      "summary": "1-2 sentence summary of what was decided and why",
+      "confidence": 0.0-1.0,
+      "source_excerpt": "The exact commit message or relevant part of it",
+      "commit_sha": "The short SHA of the commit"
+    }
+  ]
+}
+
+Rules:
+- Only include commits that represent genuine architectural decisions (confidence > 0.5)
+- Ignore: version bumps, dependency patches, typo fixes, CI/CD config tweaks, README-only changes
+- Return an empty decisions array if no meaningful decisions are found
+- Do not invent decisions not evident in the commit messages

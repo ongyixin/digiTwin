@@ -272,6 +272,14 @@ export function useJobStream(jobId: string | null): JobStreamState {
           } else if (msg.type === "job_failed") {
             job.status = "failed";
             job.error = msg.error;
+            if (msg.stages) {
+              job.stages = msg.stages;
+            } else {
+              // Fallback: mark any still-running stage as failed
+              job.stages = job.stages.map((stage: StageInfo) =>
+                stage.status === "running" ? { ...stage, status: "failed" } : stage
+              );
+            }
           }
 
           return { ...s, job };

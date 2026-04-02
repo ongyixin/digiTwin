@@ -7,7 +7,10 @@ import {
   CheckCircle2, Clock, AlertTriangle, TrendingUp, Inbox, Database,
   Activity,
 } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useDecisions, useActionHistory, useJobs } from "@/lib/hooks";
+import { api } from "@/lib/api";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { EntityCard } from "@/components/shared/EntityCard";
 import { LoadingState } from "@/components/shared/LoadingState";
@@ -46,15 +49,32 @@ const itemVariants = {
 };
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const { data: decisions, isLoading: decisionsLoading } = useDecisions();
   const { data: actions, isLoading: actionsLoading } = useActionHistory();
   const { data: jobs } = useJobs();
+  const { data: archivedArtifacts = [] } = useQuery({
+    queryKey: ["artifacts-archived"],
+    queryFn: () => api.listArchivedArtifacts("default"),
+    staleTime: 60_000,
+  });
+
+  const archivedIds = useMemo(
+    () => new Set(archivedArtifacts.map((a) => a.id)),
+    [archivedArtifacts]
+  );
+  const visibleJobs = useMemo(
+    () => jobs?.filter((j) => !j.artifact_id || !archivedIds.has(j.artifact_id)),
+    [jobs, archivedIds]
+  );
 
   const totalDecisions = decisions?.length ?? 0;
   const pendingApprovals = decisions?.filter((d) => d.status === "proposed").length ?? 0;
   const approvedDecisions = decisions?.filter((d) => d.status === "approved").length ?? 0;
   const blockedActions = actions?.filter((a) => a.status === "blocked" || a.status === "denied").length ?? 0;
-  const hasRunning = jobs?.some((j) => j.status === "running");
+  const hasRunning = mounted && jobs?.some((j) => j.status === "running");
 
   const avgConfidence =
     decisions && decisions.length > 0
@@ -319,11 +339,11 @@ export default function Dashboard() {
             </motion.div>
 
             {/* ── What Changed — Recent Ingestion Jobs ─────────── */}
-            {jobs && jobs.length > 0 && (
+            {mounted && visibleJobs && visibleJobs.length > 0 && (
               <motion.div variants={itemVariants} className="space-y-4">
-                <SectionHeader title="What changed" count={jobs.length} />
+                <SectionHeader title="What changed" count={visibleJobs.length} />
                 <div className="space-y-2">
-                  {jobs.slice(0, 5).map((job) => (
+                  {visibleJobs.slice(0, 5).map((job) => (
                     <Link
                       key={job.job_id}
                       href={`/jobs/${job.job_id}`}

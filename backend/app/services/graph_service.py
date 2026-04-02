@@ -1072,13 +1072,15 @@ class GraphService:
         artifact_type: Optional[str] = None,
         limit: int = 50,
     ) -> list[dict[str, Any]]:
-        """Return a list of artifact records for the workspace."""
+        """Return a list of non-archived artifact records for the workspace."""
         type_filter = "AND a.type = $artifact_type" if artifact_type else ""
         async with self.driver.session() as session:
             result = await session.run(
                 f"""
                 MATCH (a:Artifact)
-                WHERE a.workspace_id = $workspace_id {type_filter}
+                WHERE a.workspace_id = $workspace_id
+                  AND (a.archived IS NULL OR a.archived = false)
+                  {type_filter}
                 OPTIONAL MATCH (a)-[:HAS_VERSION]->(av:ArtifactVersion)
                 RETURN a, count(av) AS version_count
                 ORDER BY a.ingested_at DESC LIMIT $limit
@@ -1092,3 +1094,80 @@ class GraphService:
             {**dict(r["a"]), "version_count": r["version_count"]}
             for r in rows
         ]
+
+    async def list_archived_artifacts(
+        self,
+        workspace_id: str = "default",
+        artifact_type: Optional[str] = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Return a list of archived artifact records for the workspace."""
+        type_filter = "AND a.type = $artifact_type" if artifact_type else ""
+        async with self.driver.session() as session:
+            result = await session.run(
+                f"""
+                MATCH (a:Artifact)
+                WHERE a.workspace_id = $workspace_id
+                  AND a.archived = true
+                  {type_filter}
+                OPTIONAL MATCH (a)-[:HAS_VERSION]->(av:ArtifactVersion)
+                RETURN a, count(av) AS version_count
+                ORDER BY a.archived_at DESC LIMIT $limit
+                """,
+                workspace_id=workspace_id,
+                artifact_type=artifact_type,
+                limit=limit,
+            )
+            rows = await result.data()
+        return [
+            {**dict(r["a"]), "version_count": r["version_count"]}
+            for r in rows
+        ]
+
+    async def archive_artifact(self, artifact_id: str) -> bool:
+        """Mark an artifact as archived."""
+        from datetime import datetime, timezone
+        archived_at = datetime.now(timezone.utc).isoformat()
+        async with self.driver.session() as session:
+            result = await session.run(
+                """
+                MATCH (a:Artifact {id: $id})
+                SET a.archived = true, a.archived_at = $archived_at
+                RETURN a.id AS id
+                """,
+                id=artifact_id,
+                archived_at=archived_at,
+            )
+            row = await result.single()
+        return row is not None
+
+    async def unarchive_artifact(self, artifact_id: str) -> bool:
+        """Remove the archived flag from an artifact."""
+        async with self.driver.session() as session:
+            result = await session.run(
+                """
+                MATCH (a:Artifact {id: $id})
+                SET a.archived = false
+                REMOVE a.archived_at
+                RETURN a.id AS id
+                """,
+                id=artifact_id,
+            )
+            row = await result.single()
+        return row is not None
+
+    async def delete_artifact(self, artifact_id: str) -> bool:
+        """Permanently delete an artifact and all its versions and chunks."""
+        async with self.driver.session() as session:
+            result = await session.run(
+                """
+                MATCH (a:Artifact {id: $id})
+                OPTIONAL MATCH (a)-[:HAS_VERSION]->(av:ArtifactVersion)
+                OPTIONAL MATCH (av)-[:CONTAINS_CHUNK]->(c:Chunk)
+                DETACH DELETE c, av, a
+                RETURN count(a) AS deleted
+                """,
+                id=artifact_id,
+            )
+            row = await result.single()
+        return row is not None and row["deleted"] >= 0

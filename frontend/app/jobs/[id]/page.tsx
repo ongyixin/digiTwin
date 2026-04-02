@@ -1,6 +1,5 @@
 "use client";
 
-import { use } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -16,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { GitBranch } from "lucide-react";
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 function StatusBanner({ status, error }: { status: string; error?: string }) {
@@ -58,7 +57,7 @@ function StatusBanner({ status, error }: { status: string; error?: string }) {
 }
 
 export default function JobPage({ params }: PageProps) {
-  const { id } = use(params);
+  const { id } = params;
   const { job, connected, error } = useJobStream(id);
 
   return (

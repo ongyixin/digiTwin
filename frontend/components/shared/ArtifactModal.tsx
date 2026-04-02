@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -28,10 +28,52 @@ import {
   Github,
   Shield,
   Layout,
+  Loader2,
   PlusCircle,
   ChevronLeft,
   Upload,
+  Sparkles,
 } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Client-side transcript metadata extraction
+// ---------------------------------------------------------------------------
+
+interface TranscriptMeta {
+  title: string | null;
+  participants: string[];
+}
+
+function extractTranscriptMetadata(text: string): TranscriptMeta {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  // Title: look for explicit header markers in the first 10 non-empty lines
+  let title: string | null = null;
+  const titlePatterns = [
+    /^(?:meeting|subject|title|topic|re|regarding):\s*(.+)/i,
+    /^#{1,3}\s+(.+)/,
+  ];
+  for (const line of lines.slice(0, 10)) {
+    for (const pat of titlePatterns) {
+      const m = line.match(pat);
+      if (m?.[1]?.trim()) {
+        title = m[1].trim();
+        break;
+      }
+    }
+    if (title) break;
+  }
+
+  // Participants: collect unique speaker labels (e.g. "Alice:", "John Smith:")
+  const speakerRe = /^([A-Z][A-Za-z .'-]{1,40})(?:\s*\[[^\]]*\])?:\s/gm;
+  const seen = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = speakerRe.exec(text)) !== null) {
+    seen.add(m[1].trim());
+  }
+
+  return { title, participants: Array.from(seen) };
+}
 
 interface ArtifactTypeOption {
   type: ArtifactType;
@@ -55,7 +97,7 @@ const ARTIFACT_TYPES: ArtifactTypeOption[] = [
     accentColor: "text-blue-400",
     accentBg: "bg-blue-500/10",
     accentBar: "bg-blue-500",
-    acceptedFormats: ".txt,.vtt,.srt",
+    acceptedFormats: ".txt,.vtt,.srt,.pdf",
   },
   {
     type: "policy_doc",
@@ -140,7 +182,66 @@ export function ArtifactModal({ trigger }: ArtifactModalProps) {
   const [meetingDate, setMeetingDate] = useState("2026-04-01");
   const [participants, setParticipants] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
+
+  // Auto-detection state
+  const [autoTitle, setAutoTitle] = useState(false);
+  const [autoParticipants, setAutoParticipants] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track whether the user has manually touched each field
+  const titleTouchedRef = useRef(false);
+  const participantsTouchedRef = useRef(false);
   const [branch, setBranch] = useState("main");
+  const [branches, setBranches] = useState<string[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  const [branchError, setBranchError] = useState("");
+
+  // Auto-extract title + participants from transcript text (debounced 400 ms)
+  useEffect(() => {
+    if (selectedType?.type !== "transcript") return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      applyExtraction(transcriptText);
+    }, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcriptText, selectedType]);
+
+  function applyExtraction(text: string) {
+    if (!text.trim()) return;
+    const meta = extractTranscriptMetadata(text);
+    if (meta.title && !titleTouchedRef.current) {
+      setTitle(meta.title);
+      setAutoTitle(true);
+    }
+    if (meta.participants.length > 0 && !participantsTouchedRef.current) {
+      setParticipants(meta.participants.join(", "));
+      setAutoParticipants(true);
+    }
+  }
+
+  async function handleRepoUrlChange(url: string) {
+    setRepoUrl(url);
+    setBranches([]);
+    setBranchError("");
+
+    const match = url.match(/github\.com\/([^/]+\/[^/\s?#]+)/);
+    if (match) {
+      setTitle(match[1].replace(/\.git$/, ""));
+
+      setBranchesLoading(true);
+      try {
+        const data = await api.getGitHubBranches(url.trim());
+        setBranches(data.branches);
+        setBranch(data.default_branch);
+      } catch {
+        setBranchError("Could not fetch branches — check URL or token");
+        setBranch("main");
+      } finally {
+        setBranchesLoading(false);
+      }
+    }
+  }
 
   function reset() {
     setStep("choose");
@@ -153,7 +254,13 @@ export function ArtifactModal({ trigger }: ArtifactModalProps) {
     setParticipants("");
     setRepoUrl("");
     setBranch("main");
+    setBranches([]);
+    setBranchError("");
     setError("");
+    setAutoTitle(false);
+    setAutoParticipants(false);
+    titleTouchedRef.current = false;
+    participantsTouchedRef.current = false;
   }
 
   function handleClose() {
@@ -307,32 +414,45 @@ export function ArtifactModal({ trigger }: ArtifactModalProps) {
               transition={{ duration: 0.15 }}
               className="space-y-4 mt-2"
             >
-              {/* Common fields */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Title</label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder={selectedType.type === "github_repo" ? "owner/repo" : "Document title"}
-                    className={inputClass}
-                  />
+              {/* Common fields — hidden for GitHub repos (auto-derived) */}
+              {!selectedType.supportsGitHub && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      Title
+                      {autoTitle && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
+                          <Sparkles className="w-2.5 h-2.5" /> auto
+                        </span>
+                      )}
+                    </label>
+                    <Input
+                      value={title}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        titleTouchedRef.current = true;
+                        setAutoTitle(false);
+                      }}
+                      placeholder="Document title"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Sensitivity</label>
+                    <Select value={sensitivity} onValueChange={setSensitivity}>
+                      <SelectTrigger className={`${inputClass} w-full`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public" className="text-xs">Public</SelectItem>
+                        <SelectItem value="internal" className="text-xs">Internal</SelectItem>
+                        <SelectItem value="confidential" className="text-xs">Confidential</SelectItem>
+                        <SelectItem value="restricted" className="text-xs">Restricted</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Sensitivity</label>
-                  <Select value={sensitivity} onValueChange={setSensitivity}>
-                    <SelectTrigger className={`${inputClass} w-full`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public" className="text-xs">Public</SelectItem>
-                      <SelectItem value="internal" className="text-xs">Internal</SelectItem>
-                      <SelectItem value="confidential" className="text-xs">Confidential</SelectItem>
-                      <SelectItem value="restricted" className="text-xs">Restricted</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              )}
 
               {/* GitHub fields */}
               {selectedType.supportsGitHub && (
@@ -344,19 +464,48 @@ export function ArtifactModal({ trigger }: ArtifactModalProps) {
                     </label>
                     <Input
                       value={repoUrl}
-                      onChange={(e) => setRepoUrl(e.target.value)}
+                      onChange={(e) => handleRepoUrlChange(e.target.value)}
                       placeholder="https://github.com/owner/repo"
                       className={inputClass}
                     />
+                    {title && (
+                      <p className="text-xs text-muted-foreground pl-0.5">
+                        Detected: <span className="text-foreground font-mono">{title}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Branch</label>
-                    <Input
-                      value={branch}
-                      onChange={(e) => setBranch(e.target.value)}
-                      placeholder="main"
-                      className={inputClass}
-                    />
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      Branch
+                      {branchesLoading && (
+                        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                      )}
+                    </label>
+                    {branches.length > 0 ? (
+                      <Select value={branch} onValueChange={setBranch}>
+                        <SelectTrigger className={`${inputClass} w-full`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {branches.map((b) => (
+                            <SelectItem key={b} value={b} className="text-xs font-mono">
+                              {b}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={branch}
+                        onChange={(e) => setBranch(e.target.value)}
+                        placeholder={branchesLoading ? "Detecting branches…" : "main"}
+                        disabled={branchesLoading}
+                        className={inputClass}
+                      />
+                    )}
+                    {branchError && (
+                      <p className="text-xs text-amber-400 pl-0.5">{branchError}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -375,10 +524,21 @@ export function ArtifactModal({ trigger }: ArtifactModalProps) {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Participants</label>
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        Participants
+                        {autoParticipants && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
+                            <Sparkles className="w-2.5 h-2.5" /> auto
+                          </span>
+                        )}
+                      </label>
                       <Input
                         value={participants}
-                        onChange={(e) => setParticipants(e.target.value)}
+                        onChange={(e) => {
+                          setParticipants(e.target.value);
+                          participantsTouchedRef.current = true;
+                          setAutoParticipants(false);
+                        }}
                         placeholder="Alex, Jordan, Sam"
                         className={inputClass}
                       />
@@ -417,7 +577,32 @@ export function ArtifactModal({ trigger }: ArtifactModalProps) {
                       type="file"
                       className="hidden"
                       accept={selectedType.acceptedFormats}
-                      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                      onChange={(e) => {
+                        const picked = e.target.files?.[0] ?? null;
+                        setFile(picked);
+                        // For text-based transcript files, read content and auto-extract
+                        if (
+                          picked &&
+                          selectedType.type === "transcript" &&
+                          /\.(txt|vtt|srt)$/i.test(picked.name)
+                        ) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const text = ev.target?.result as string;
+                            if (text) {
+                              setTranscriptText("");
+                              applyExtraction(text);
+                            }
+                          };
+                          reader.readAsText(picked);
+                        }
+                        // Pre-fill title from filename if still empty
+                        if (picked && !titleTouchedRef.current && !title) {
+                          const base = picked.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
+                          setTitle(base);
+                          setAutoTitle(true);
+                        }
+                      }}
                     />
                   </label>
                 </div>

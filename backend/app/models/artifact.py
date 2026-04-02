@@ -71,3 +71,5 @@ class ArtifactRecord(BaseModel):
     ingested_at: str
     entity_count: int = 0
     version_count: int = 0
+    archived: bool = False
+    archived_at: Optional[str] = None

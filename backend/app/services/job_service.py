@@ -175,6 +175,7 @@ async def mark_failed(job_id: str, error: str) -> None:
         "type": "job_failed",
         "job_id": job_id,
         "error": error,
+        "stages": [s.model_dump() for s in state.stages],
         "ts": _now(),
     })
 

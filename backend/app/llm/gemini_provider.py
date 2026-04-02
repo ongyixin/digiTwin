@@ -1,11 +1,16 @@
 """Gemini-backed LLM provider."""
 
+import asyncio
 from typing import Optional
 
 from google import genai
 from google.genai import types
 
 from app.llm.base import GenerateConfig, LLMProvider
+
+# Hard cap per LLM call — prevents entity_extraction from hanging indefinitely
+# when Gemini is slow or rate-limited.
+_GENERATE_TIMEOUT_SECS = 120
 
 
 class GeminiProvider(LLMProvider):
@@ -25,10 +30,13 @@ class GeminiProvider(LLMProvider):
             **({"response_mime_type": cfg.response_mime_type} if cfg.response_mime_type else {}),
             **({"max_output_tokens": cfg.max_tokens} if cfg.max_tokens else {}),
         )
-        response = await self._client.aio.models.generate_content(
-            model=self._chat_model,
-            contents=prompt,
-            config=genai_config,
+        response = await asyncio.wait_for(
+            self._client.aio.models.generate_content(
+                model=self._chat_model,
+                contents=prompt,
+                config=genai_config,
+            ),
+            timeout=_GENERATE_TIMEOUT_SECS,
         )
         return response.text or ""
 

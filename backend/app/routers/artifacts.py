@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.dependencies import get_driver
 from app.models.artifact import ArtifactRecord
@@ -18,13 +18,68 @@ async def list_artifacts(
     limit: int = Query(default=50, le=200),
     driver=Depends(get_driver),
 ) -> list[dict]:
-    """Return all ingested artifacts for a workspace."""
+    """Return all non-archived ingested artifacts for a workspace."""
     service = GraphService(driver)
     return await service.list_artifacts(
         workspace_id=workspace_id,
         artifact_type=artifact_type,
         limit=limit,
     )
+
+
+@router.get("/archived", response_model=list[dict])
+async def list_archived_artifacts(
+    workspace_id: str = Query(default="default"),
+    artifact_type: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, le=200),
+    driver=Depends(get_driver),
+) -> list[dict]:
+    """Return all archived artifacts for a workspace."""
+    service = GraphService(driver)
+    return await service.list_archived_artifacts(
+        workspace_id=workspace_id,
+        artifact_type=artifact_type,
+        limit=limit,
+    )
+
+
+@router.post("/{artifact_id}/archive")
+async def archive_artifact(
+    artifact_id: str,
+    driver=Depends(get_driver),
+) -> dict:
+    """Archive an artifact so it no longer appears in the main dashboard."""
+    service = GraphService(driver)
+    success = await service.archive_artifact(artifact_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return {"success": True, "artifact_id": artifact_id}
+
+
+@router.post("/{artifact_id}/unarchive")
+async def unarchive_artifact(
+    artifact_id: str,
+    driver=Depends(get_driver),
+) -> dict:
+    """Restore an archived artifact back to the active list."""
+    service = GraphService(driver)
+    success = await service.unarchive_artifact(artifact_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return {"success": True, "artifact_id": artifact_id}
+
+
+@router.delete("/{artifact_id}")
+async def delete_artifact(
+    artifact_id: str,
+    driver=Depends(get_driver),
+) -> dict:
+    """Permanently delete an artifact and all its associated data."""
+    service = GraphService(driver)
+    success = await service.delete_artifact(artifact_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return {"success": True, "artifact_id": artifact_id}
 
 
 @router.get("/{artifact_id}")

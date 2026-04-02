@@ -37,9 +37,12 @@ class TranscriptAdapter(BaseAdapter):
         llm: LLMProvider,
         job_emitter: Optional[Callable] = None,
     ) -> ArtifactIngestResult:
-        # Decode bytes if needed
+        # Decode bytes — handle PDF or plain text
         if isinstance(raw_content, bytes):
-            transcript_text = raw_content.decode("utf-8")
+            if raw_content[:4] == b"%PDF":
+                transcript_text = _extract_pdf_text(raw_content)
+            else:
+                transcript_text = raw_content.decode("utf-8")
         else:
             transcript_text = raw_content or ""
 
@@ -95,3 +98,13 @@ class TranscriptAdapter(BaseAdapter):
 def _content_hash(text: str) -> str:
     import hashlib
     return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
+def _extract_pdf_text(data: bytes) -> str:
+    """Extract plain text from a PDF byte stream using pypdf."""
+    import io
+    from pypdf import PdfReader
+
+    reader = PdfReader(io.BytesIO(data))
+    pages = [page.extract_text() or "" for page in reader.pages]
+    return "\n".join(pages)

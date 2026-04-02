@@ -184,6 +184,8 @@ export interface ArtifactRecord {
   status: string;
   ingested_at: string;
   version_count: number;
+  archived?: boolean;
+  archived_at?: string;
 }
 
 // ---------------------------------------------------------------------------
