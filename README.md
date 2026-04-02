@@ -15,7 +15,7 @@ digiTwin turns organizational activity (meetings, docs, tickets, approvals) into
 - **Policy-gated agent actions** — every side-effecting action checks the permission subgraph before execution; blocked actions are queued for human review
 - **Autonomous Resolution Engine** — detects contradicted assumptions, blocked dependencies, and overdue approvals; generates LLM plans and walks them through an approve/execute loop
 - **Real-time streaming** — ingestion and resolution progress streamed over WebSocket; frontend polls via TanStack Query
-- **RocketRide pipeline definitions** — portable JSON pipelines (`.pipe`) model the ingestion and policy-check workflows as executable DAGs with custom Python nodes
+- **RocketRide pipeline engine** — portable JSON pipelines (`.pipe`) model every ingestion and policy-check workflow as an executable DAG; the FastAPI backend delegates to a running RocketRide engine when configured, with transparent fallback to in-process execution
 - **Graph-first UI** — Next.js 14 app with dependency map, decision timeline, permission inspector, audit log, chatbot, and review inbox
 
 ---
@@ -31,7 +31,7 @@ digiTwin turns organizational activity (meetings, docs, tickets, approvals) into
 
 ```bash
 cp .env.example .env
-# Edit .env and set GEMINI_API_KEY
+# Edit .env — set GEMINI_API_KEY at minimum
 ```
 
 | Variable | Default | Description |
@@ -45,6 +45,8 @@ cp .env.example .env
 | `GITHUB_APP_ID` | — | GitHub App ID for org-level access (Option B) |
 | `GITHUB_APP_PRIVATE_KEY` | — | GitHub App private key (Option B) |
 | `GITHUB_INSTALLATION_ID` | — | GitHub App installation ID (Option B) |
+| `ROCKETRIDE_URI` | `ws://localhost:5565` | WebSocket URI of the RocketRide engine. Leave empty to use in-process execution instead. |
+| `ROCKETRIDE_APIKEY` | `digitwin-local` | Shared secret between the backend and the RocketRide engine. Must match the engine's `ROCKETRIDE_APIKEY`. |
 
 ### 2. Start all services
 
@@ -55,6 +57,7 @@ make dev
 
 This starts:
 - **Neo4j 5.18** at `http://localhost:7474` (Bolt: `7687`) — with APOC plugin
+- **RocketRide engine** at `ws://localhost:5565` — executes `.pipe` DAGs
 - **FastAPI backend** at `http://localhost:8000`
 - **Next.js frontend** at `http://localhost:3001`
 
@@ -116,15 +119,22 @@ make eval-permissions    # permission correctness only
 │                   FastAPI Backend                       │
 │  /api/ingest  /api/chatbot  /api/permissions            │
 │  /api/resolution  /api/actions  /api/graph  /api/query  │
-└──────┬───────────────────────────────────┬──────────────┘
-       │ neo4j-driver (async Bolt)         │ google-genai
-┌──────▼──────────────┐         ┌──────────▼──────────────┐
-│     Neo4j 5.18      │         │   Gemini (LLM +         │
-│  Knowledge graph    │         │   Embeddings)           │
-│  Permission graph   │         └─────────────────────────┘
-│  Vector indexes     │
-└─────────────────────┘
+└──────┬─────────────────────────┬──────────┬─────────────┘
+       │ pipeline_runner         │ Bolt     │ google-genai
+       │ (WebSocket SDK)         │          │
+┌──────▼──────────────┐  ┌──────▼──────┐  ┌▼──────────────┐
+│  RocketRide Engine  │  │  Neo4j 5.18 │  │ Gemini (LLM + │
+│  Executes .pipe DAGs│  │  Knowledge  │  │ Embeddings)   │
+│  custom_python nodes│  │  Permission │  └───────────────┘
+│  ws://…:5565        │  │  Vector idx │
+└──────┬──────────────┘  └─────────────┘
+       │ Bolt (custom nodes)
+       └──────────────────────►  Neo4j 5.18 (same instance)
 ```
+
+> **Fallback:** when `ROCKETRIDE_URI` is empty the backend executes the same
+> pipeline logic in-process via `IngestionService` and the adapter layer —
+> no behaviour change for local development without the engine.
 
 ### Request flow — ingestion
 
@@ -133,22 +143,36 @@ sequenceDiagram
     participant UI as Frontend
     participant API as FastAPI /api/ingest/artifact
     participant JQ as job_service (in-memory)
-    participant IS as IngestionService / ArtifactRouter
+    participant PR as PipelineRunner
+    participant RR as RocketRide Engine
+    participant IS as IngestionService (fallback)
     participant LLM as Gemini LLM
     participant N4J as Neo4j
 
     UI->>API: POST multipart (file + metadata)
     API->>JQ: create_job(job_id)
     API-->>UI: { job_id }
-    API->>IS: asyncio.create_task(run_artifact_job)
-    IS->>IS: chunk text / transcribe audio
-    IS->>LLM: extract entities (decisions, assumptions, evidence…)
-    IS->>LLM: extract relationships
-    IS->>LLM: generate embeddings
-    IS->>N4J: MERGE nodes + relationships (Cypher)
-    IS->>JQ: mark_completed(twin_diff)
+    API->>PR: asyncio.create_task(run_artifact_job)
+
+    alt RocketRide configured (ROCKETRIDE_URI set)
+        PR->>RR: use(ingest_*.pipe) → token
+        PR->>RR: send(token, JSON payload)
+        RR->>RR: text_chunker / audio_transcription
+        RR->>LLM: llm node — extract entities
+        RR->>LLM: llm node — extract relationships
+        RR->>LLM: embedder node — generate embeddings
+        RR->>N4J: custom_python neo4j_upsert.py
+        RR-->>PR: pipeline result (entities_created, meeting_id)
+        PR->>RR: terminate(token)
+    else In-process fallback
+        PR->>IS: ingest_transcript / adapter.ingest
+        IS->>LLM: extract entities + embeddings
+        IS->>N4J: MERGE nodes (Cypher)
+    end
+
+    PR->>JQ: mark_completed(twin_diff)
     UI->>API: WS /ws/jobs/{job_id}
-    API-->>UI: stage progress events
+    API-->>UI: stage progress events (mapped from RocketRide node events)
 ```
 
 ### Request flow — chatbot query
@@ -226,6 +250,7 @@ flowchart TD
 │   │   │   ├── diff_service.py      # Twin diff (before/after graph snapshots)
 │   │   │   ├── job_service.py       # In-memory job state + WebSocket emitter
 │   │   │   ├── pii_service.py       # Optional PII redaction
+│   │   │   ├── pipeline_runner.py   # RocketRide SDK bridge; falls back to in-process
 │   │   │   └── adapters/            # Per-artifact-type ingestion adapters
 │   │   ├── extraction/              # LLM extraction pipeline helpers
 │   │   ├── graph_schema/
@@ -274,7 +299,10 @@ flowchart TD
 │   └── nodes/                       # Custom Python nodes used by pipelines
 │       ├── neo4j_upsert.py          # Writes extracted entities to Neo4j
 │       ├── neo4j_query.py           # Reads graph context for retrieval
-│       └── permission_check.py      # Resolves permissions + delegation
+│       ├── permission_check.py      # Resolves permissions + delegation
+│       ├── provenance_register.py   # Upserts Artifact + ArtifactVersion nodes
+│       ├── github_auth.py           # GitHub App JWT auth + repo file enumeration
+│       └── code_parser.py           # Python AST + regex symbol extraction
 ├── scripts/
 │   ├── init_neo4j.py                # Applies indexes.cypher and constraints.cypher
 │   ├── seed_demo.py                 # Loads demo graph for local development
@@ -331,21 +359,96 @@ All embeddings are 768-dimensional (Gemini `gemini-embedding-001`, cosine simila
 
 ## RocketRide pipelines
 
-The `pipelines/` directory contains portable JSON pipeline definitions (`.pipe`) that model ingestion and policy workflows as DAGs. Each node in a pipeline is either a built-in type (`webhook`, `text_chunker`, `llm`, `embedder`) or a `custom_python` node that calls a script in `pipelines/nodes/`.
+The `pipelines/` directory contains portable JSON pipeline definitions (`.pipe`) that model every ingestion and policy-check workflow as a DAG. When a RocketRide engine is running, the FastAPI backend delegates execution to it via the [RocketRide Python SDK](https://pypi.org/project/rocketride/); otherwise the same logic runs in-process.
 
-**Key pipelines:**
+### How the integration works
 
-| Pipeline | Purpose |
+`backend/app/services/pipeline_runner.py` is the bridge:
+
+1. **`PipelineRunner.is_available()`** — returns `True` when both `ROCKETRIDE_URI` and `ROCKETRIDE_APIKEY` are set.
+2. **`PipelineRunner.pipe_path_for(artifact_type)`** — maps an artifact type to its `.pipe` file on disk.
+3. **`PipelineRunner.run_pipe(pipe_path, payload, ...)`** — opens an async `RocketRideClient`, calls `use()` → `set_events()` → `send()` → `terminate()`. RocketRide node events (`apaevt_node_started` / `apaevt_node_completed`) are translated into internal `job_service` stage events so the frontend job tracker updates in real time regardless of execution mode.
+
+When `ROCKETRIDE_URI` is empty the `_run_ingest_job` / `_run_artifact_job` background tasks fall back to `IngestionService` and the adapter layer — no code changes required.
+
+### Pipeline → artifact type mapping
+
+| Artifact type | Pipeline file |
 |---|---|
-| `ingest_transcript.pipe` | Chunk transcript → LLM entity extraction → embed → Neo4j upsert → audit event |
-| `ingest_prd.pipe` | Parse PRD → extract requirements and product goals → Neo4j |
-| `ingest_policy_doc.pipe` | Extract policy rules and obligations → permission graph |
-| `ingest_repo.pipe` | Clone GitHub repo → extract symbols and dependencies → Neo4j |
-| `ingest_audio.pipe` | Transcribe audio/video → feed into transcript pipeline |
-| `check_policy.pipe` | Sub-pipeline: resolve user permissions + delegation before any side effect |
-| `draft_followups.pipe` | Query blocked approvals → generate draft messages within allowed scope |
+| `transcript` | `ingest_transcript.pipe` |
+| `prd` · `rfc` · `postmortem` | `ingest_prd.pipe` |
+| `audio` · `video` | `ingest_audio.pipe` |
+| `github_repo` | `ingest_repo.pipe` |
+| `policy_doc` · `contract` · `generic_text` | `ingest_policy_doc.pipe` |
 
-Every pipeline that causes a side effect calls `check_policy.pipe` first. If the permission check fails, the pipeline halts and records a `blocked` `AgentAction` in Neo4j.
+### Pipeline descriptions
+
+| Pipeline | Node sequence |
+|---|---|
+| `ingest_transcript.pipe` | `webhook` → `text_chunker` → `llm` (entity extraction) → `llm` (relationship extraction) → `embedder` → `custom_python` neo4j_upsert → `custom_python` audit |
+| `ingest_prd.pipe` | `webhook` → `pii_anonymizer` → `custom_python` provenance_register → `llm` (PDF layout) → `text_chunker` → `llm` (entities) → `llm` (relationships) → `embedder` → `custom_python` neo4j_upsert → audit |
+| `ingest_policy_doc.pipe` | Same shape as `ingest_prd.pipe` with policy-specific prompts |
+| `ingest_repo.pipe` | `webhook` → `custom_python` github_auth → `custom_python` github_auth (enumerate) → `custom_python` code_parser → `llm` (architecture) → `embedder` → `custom_python` neo4j_upsert → audit |
+| `ingest_audio.pipe` | `webhook` → `custom_python` provenance_register → `audio_transcription` → `text_chunker` → `llm` (entities) → `llm` (relationships) → `embedder` → `custom_python` neo4j_upsert → audit |
+| `check_policy.pipe` | `passthrough` → `custom_python` permission_check → `custom_python` permission_check (delegation) |
+| `draft_followups.pipe` | `webhook` → `custom_python` neo4j_query (blocked approvals) → `sub_pipeline` check_policy → `llm` (draft messages) → `custom_python` neo4j_upsert (audit) |
+
+### Node types used
+
+| Type | Source |
+|---|---|
+| `webhook`, `text_chunker`, `llm`, `embedder`, `pii_anonymizer`, `audio_transcription`, `passthrough`, `sub_pipeline` | Built-in RocketRide nodes |
+| `custom_python` | Scripts in `pipelines/nodes/` |
+
+### Custom Python nodes
+
+| Script | Purpose |
+|---|---|
+| `neo4j_upsert.py` | Upserts extracted entities (decisions, assumptions, evidence, persons) into Neo4j; also creates `AgentAction` audit records |
+| `neo4j_query.py` | Runs parameterised Cypher queries and returns results as JSON for downstream nodes |
+| `permission_check.py` | Resolves direct role grants and delegation chains in the permission subgraph |
+| `provenance_register.py` | Creates or updates `Artifact` and `ArtifactVersion` nodes with content hash and model version |
+| `github_auth.py` | Exchanges GitHub App credentials for an installation token (falls back to PAT); enumerates a repo's file tree filtered by extension |
+| `code_parser.py` | Fetches source files from GitHub and extracts symbols (Python AST; TypeScript/Go regex heuristics) |
+
+### LLM and embedding models
+
+All pipelines use Gemini, resolved from environment variables set on the engine:
+
+| Variable | Default | Used for |
+|---|---|---|
+| `GEMINI_MODEL` | `gemini-2.5-flash` | All `llm` nodes |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | All `embedder` nodes |
+| `TRANSCRIPTION_PROVIDER` | `gemini` | `audio_transcription` nodes |
+
+### Running the engine
+
+**Docker Compose (recommended):** the engine starts automatically as the `rocketride-engine` service.
+
+```bash
+docker-compose up --build
+```
+
+**Standalone Docker:**
+
+```bash
+docker pull ghcr.io/rocketride-org/rocketride-engine:latest
+docker run -p 5565:5565 \
+  -v $(pwd)/pipelines:/pipelines \
+  -e ROCKETRIDE_APIKEY=digitwin-local \
+  -e GEMINI_API_KEY=$GEMINI_API_KEY \
+  -e NEO4J_URI=bolt://host.docker.internal:7687 \
+  -e NEO4J_USER=neo4j \
+  -e NEO4J_PASSWORD=digitwin2026 \
+  ghcr.io/rocketride-org/rocketride-engine:latest
+```
+
+**Disable RocketRide** (use in-process execution only):
+
+```bash
+# In .env — remove or blank out ROCKETRIDE_URI
+ROCKETRIDE_URI=
+```
 
 ---
 
@@ -503,7 +606,20 @@ Ingestion and chatbot endpoints will return 500 with a key-missing error. Set `G
 
 **Embeddings shape mismatch**
 
-The vector indexes are configured for 768 dimensions (Gemini `gemini-embedding-001`). If you switch embedding models, run `scripts/init_neo4j.py` to drop and recreate the vector indexes with the correct dimensions.
+Vector indexes are configured for either 768 or 3072 dimensions depending on the node that wrote them (`ingest_transcript.pipe` uses 3072; document pipes use 768). If you change the embedding model, run `scripts/init_neo4j.py` to drop and recreate the indexes with the correct dimensions.
+
+**RocketRide engine not reachable**
+
+If the backend logs `ConnectionException` or `RocketRide not available`, check:
+1. The `rocketride-engine` container is running: `docker-compose ps rocketride-engine`
+2. `ROCKETRIDE_URI` matches the engine's address (default `ws://localhost:5565` locally, `ws://rocketride-engine:5565` inside Docker Compose)
+3. `ROCKETRIDE_APIKEY` is the same value on both the engine and the backend
+
+The backend will automatically fall back to in-process execution if the engine is unreachable and `ROCKETRIDE_URI` is empty. If you want to force in-process mode, set `ROCKETRIDE_URI=` in `.env`.
+
+**RocketRide custom node fails with `ModuleNotFoundError`**
+
+The engine runs custom Python nodes as subprocesses. Ensure `neo4j` (and `cryptography` for GitHub App JWT signing) are installed in the engine's Python environment. Add them to the engine's node dependency list or use the engine's built-in package installation mechanism.
 
 **Frontend cannot reach backend**
 

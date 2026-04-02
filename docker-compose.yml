@@ -21,6 +21,31 @@ services:
       timeout: 10s
       retries: 10
 
+  rocketride-engine:
+    image: ghcr.io/rocketride-org/rocketride-engine:latest
+    container_name: digitwin-rocketride
+    ports:
+      - "5565:5565"
+    volumes:
+      - ./pipelines:/pipelines
+    environment:
+      ROCKETRIDE_APIKEY: ${ROCKETRIDE_APIKEY:-digitwin-local}
+      PIPELINES_WORKDIR: /pipelines
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-digitwin2026}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${CHAT_MODEL:-gemini-2.5-flash}
+      GEMINI_EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
+      TRANSCRIPTION_PROVIDER: ${TRANSCRIPTION_PROVIDER:-gemini}
+      GITHUB_ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN:-}
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
+      GITHUB_INSTALLATION_ID: ${GITHUB_INSTALLATION_ID:-}
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
   backend:
     build:
       context: ./backend
@@ -38,11 +63,17 @@ services:
       GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
       GITHUB_INSTALLATION_ID: ${GITHUB_INSTALLATION_ID:-}
       ENVIRONMENT: development
+      ROCKETRIDE_URI: ${ROCKETRIDE_URI:-ws://rocketride-engine:5565}
+      ROCKETRIDE_APIKEY: ${ROCKETRIDE_APIKEY:-digitwin-local}
+      PIPELINES_DIR: /pipelines
     depends_on:
       neo4j:
         condition: service_healthy
+      rocketride-engine:
+        condition: service_started
     volumes:
       - ./backend:/app
+      - ./pipelines:/pipelines
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:

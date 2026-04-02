@@ -24,8 +24,8 @@
       "id": "entity_extractor",
       "type": "llm",
       "config": {
-        "provider": "openai",
-        "model": "gpt-4o",
+        "provider": "gemini",
+        "model": "${GEMINI_MODEL:gemini-2.5-flash}",
         "prompt_file": "../backend/app/prompts/extract_decisions.txt",
         "output_format": "json",
         "temperature": 0.1,
@@ -36,8 +36,8 @@
       "id": "relationship_extractor",
       "type": "llm",
       "config": {
-        "provider": "openai",
-        "model": "gpt-4o",
+        "provider": "gemini",
+        "model": "${GEMINI_MODEL:gemini-2.5-flash}",
         "prompt_file": "../backend/app/prompts/extract_relationships.txt",
         "output_format": "json",
         "temperature": 0.1,
@@ -48,9 +48,9 @@
       "id": "embedding_generator",
       "type": "embedder",
       "config": {
-        "provider": "openai",
-        "model": "text-embedding-3-small",
-        "dimensions": 1536,
+        "provider": "gemini",
+        "model": "${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}",
+        "dimensions": 3072,
         "fields_to_embed": ["decisions[].title", "decisions[].summary", "assumptions[].text", "evidence[].content_summary"]
       }
     },

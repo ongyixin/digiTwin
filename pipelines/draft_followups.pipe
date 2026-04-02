@@ -36,8 +36,8 @@
       "id": "draft_messages",
       "type": "llm",
       "config": {
-        "provider": "openai",
-        "model": "gpt-4o",
+        "provider": "gemini",
+        "model": "${GEMINI_MODEL:gemini-2.5-flash}",
         "system_prompt": "You are a professional assistant drafting follow-up messages for pending approvals. Be concise and professional.",
         "output_format": "json",
         "temperature": 0.4,

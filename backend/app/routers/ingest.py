@@ -23,6 +23,7 @@ from app.services.artifact_classifier import classify_from_metadata, classify_fr
 from app.services.artifact_router import get_artifact_router
 from app.services.diff_service import DiffService
 from app.services.ingestion_service import IngestionService
+from app.services.pipeline_runner import get_pipeline_runner
 
 router = APIRouter(prefix="/api/ingest", tags=["ingest"])
 
@@ -36,21 +37,47 @@ async def _run_ingest_job(
     driver,
     llm,
 ) -> None:
-    """Background task: run transcript ingestion and update job state in real time."""
+    """Background task: run transcript ingestion and update job state in real time.
+
+    Delegates to the RocketRide engine when configured; falls back to in-process
+    execution otherwise.
+    """
     since_ts = datetime.now(timezone.utc).isoformat()
     diff_svc = DiffService(driver)
     before_snapshot = await diff_svc.snapshot_before()
 
     await job_service.mark_running(job_id)
     try:
-        service = IngestionService(driver, llm)
-        result = await service.ingest_transcript(
-            transcript=transcript,
-            meeting_title=meeting_title,
-            meeting_date=meeting_date,
-            participants=participants,
-            job_emitter=job_service.make_emitter(job_id),
-        )
+        runner = get_pipeline_runner()
+        pipe_path = runner.pipe_path_for("transcript") if runner.is_available() else None
+
+        if pipe_path:
+            # --- RocketRide execution path ---
+            rr_result = await runner.run_pipe(
+                pipe_path,
+                {
+                    "transcript": transcript,
+                    "meeting_title": meeting_title,
+                    "meeting_date": meeting_date,
+                    "participants": participants,
+                },
+                artifact_type="transcript",
+                job_emitter=job_service.make_emitter(job_id),
+            )
+            entities_created = rr_result.get("entities_created", {})
+            meeting_id = rr_result.get("meeting_id", "")
+        else:
+            # --- In-process fallback ---
+            service = IngestionService(driver, llm)
+            result = await service.ingest_transcript(
+                transcript=transcript,
+                meeting_title=meeting_title,
+                meeting_date=meeting_date,
+                participants=participants,
+                job_emitter=job_service.make_emitter(job_id),
+            )
+            entities_created = result.entities_created
+            meeting_id = result.meeting_id
 
         # Compute twin diff
         await job_service.stage_started(job_id, "twin_diff")
@@ -67,9 +94,9 @@ async def _run_ingest_job(
 
         await job_service.mark_completed(
             job_id,
-            entities_created=result.entities_created,
+            entities_created=entities_created,
             twin_diff=twin_diff,
-            meeting_id=result.meeting_id,
+            meeting_id=meeting_id,
         )
     except asyncio.CancelledError:
         await job_service.mark_failed(job_id, "Job cancelled (server shutdown or reload)")
@@ -86,26 +113,75 @@ async def _run_artifact_job(
     driver,
     llm,
 ) -> None:
-    """Background task: run artifact ingestion via the router/adapter pattern."""
+    """Background task: run artifact ingestion via the router/adapter pattern.
+
+    Delegates to the RocketRide engine when configured; falls back to in-process
+    execution otherwise.
+    """
     since_ts = datetime.now(timezone.utc).isoformat()
     diff_svc = DiffService(driver)
     before_snapshot = await diff_svc.snapshot_before()
 
     await job_service.mark_running(job_id)
     try:
-        router_svc = get_artifact_router()
-        result = await router_svc.route(
-            request=request,
-            raw_content=raw_content,
-            driver=driver,
-            llm=llm,
-            job_emitter=job_service.make_emitter(job_id),
-        )
+        runner = get_pipeline_runner()
+        pipe_path = runner.pipe_path_for(request.artifact_type) if runner.is_available() else None
 
-        # Update artifact_id on the job
+        artifact_id: Optional[str] = None
+        entities_created: dict = {}
+
+        if pipe_path:
+            # --- RocketRide execution path ---
+            # Build a JSON-serialisable payload combining metadata and text content
+            content_text = ""
+            if isinstance(raw_content, bytes):
+                try:
+                    content_text = raw_content.decode("utf-8", errors="replace")
+                except Exception:
+                    content_text = ""
+            elif isinstance(raw_content, str):
+                content_text = raw_content
+
+            rr_payload: dict = {
+                "artifact_type": request.artifact_type,
+                "source_type": request.source_type,
+                "workspace_id": request.workspace_id,
+                "sensitivity": request.sensitivity,
+                "meeting_title": request.meeting_title,
+                "meeting_date": request.meeting_date,
+                "participants": request.participants,
+                "github_repo_url": request.github_repo_url,
+                "github_branch": request.github_branch,
+                "source_url": request.source_url,
+                "metadata": request.metadata,
+                "content": content_text,
+            }
+
+            rr_result = await runner.run_pipe(
+                pipe_path,
+                rr_payload,
+                artifact_type=request.artifact_type,
+                job_emitter=job_service.make_emitter(job_id),
+            )
+            artifact_id = rr_result.get("artifact_id")
+            entities_created = rr_result.get("entities_created", {})
+        else:
+            # --- In-process fallback ---
+            router_svc = get_artifact_router()
+            result = await router_svc.route(
+                request=request,
+                raw_content=raw_content,
+                driver=driver,
+                llm=llm,
+                job_emitter=job_service.make_emitter(job_id),
+            )
+            artifact_id = result.artifact_id
+            entities_created = result.entities_created
+
+        # Update artifact_id on the job state
         state = job_service.get_job(job_id)
-        if state:
-            state.artifact_id = result.artifact_id
+        if state and artifact_id:
+            state.artifact_id = artifact_id
 
         # Compute twin diff for graph-change summary
         if "twin_diff" in job_service.PIPELINE_STAGES:
@@ -125,7 +201,7 @@ async def _run_artifact_job(
 
         await job_service.mark_completed(
             job_id,
-            entities_created=result.entities_created,
+            entities_created=entities_created,
             twin_diff=twin_diff,
             meeting_id=None,
         )

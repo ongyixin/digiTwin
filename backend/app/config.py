@@ -30,5 +30,14 @@ class Settings(BaseSettings):
     github_installation_id: str = ""
     github_webhook_secret: str = ""
 
+    # RocketRide pipeline engine
+    # Set ROCKETRIDE_URI (e.g. ws://localhost:5565) to enable delegated pipeline
+    # execution. When empty the backend falls back to in-process execution.
+    rocketride_uri: str = ""
+    rocketride_apikey: str = ""
+
+    # Absolute path to the pipelines/ directory. Auto-detected when empty.
+    pipelines_dir: str = ""
+
 
 settings = Settings()
